@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Plus, RefreshCw, Sprout } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { useAppStore, type FarmPost, type PostFilter } from '@/store/useAppStore'
+import { useAppStore, type PostFilter } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import PostCard from '@/components/shared/PostCard'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
@@ -19,21 +18,26 @@ const filters: { key: PostFilter; labelKey: string }[] = [
 ]
 
 export default function FeedScreen() {
-  const { posts, setPosts, filter, setFilter, lang, setScreen, isLoading, setLoading, user, totalPosts, setTotalPosts } = useAppStore()
+  const { posts, setPosts, filter, setFilter, lang, setScreen, isLoading, setLoading, setTotalPosts } = useAppStore()
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [initialized, setInitialized] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const fetchPosts = useCallback(async (pageNum: number = 1, currentFilter: PostFilter = filter, append: boolean = false) => {
+  // Stable fetch that reads posts from ref to avoid dep loops
+  const postsRef = useRef(posts)
+  postsRef.current = posts
+
+  const fetchPosts = useCallback(async (pageNum: number = 1, currentFilter: PostFilter = 'all', append: boolean = false) => {
     try {
       const res = await fetch(`/api/posts?filter=${currentFilter}&page=${pageNum}&limit=10`)
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
 
       if (append) {
-        setPosts([...posts, ...data.posts])
+        setPosts([...postsRef.current, ...data.posts])
       } else {
         setPosts(data.posts)
       }
@@ -43,25 +47,29 @@ export default function FeedScreen() {
     } catch {
       return false
     }
-  }, [filter, posts, setPosts, setTotalPosts])
+  }, [setPosts, setTotalPosts])
 
   // Initial fetch
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       setLoading(true)
       setPage(1)
       await fetchPosts(1, filter, false)
-      setLoading(false)
+      if (!cancelled) {
+        setLoading(false)
+        setInitialized(true)
+      }
     }
     load()
-  }, [filter, fetchPosts])
+    return () => { cancelled = true }
+  }, [filter, fetchPosts, setLoading])
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 30s (silent, no loading state)
   useEffect(() => {
     intervalRef.current = setInterval(async () => {
       await fetchPosts(1, filter, false)
     }, 30000)
-
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
@@ -72,7 +80,7 @@ export default function FeedScreen() {
     const el = scrollRef.current
     if (!el) return
     const { scrollTop, scrollHeight, clientHeight } = el
-    if (scrollHeight - scrollTop - clientHeight < 100 && hasMore && !isLoading) {
+    if (scrollHeight - scrollTop - clientHeight < 150 && hasMore && !isLoading) {
       const nextPage = page + 1
       setPage(nextPage)
       fetchPosts(nextPage, filter, true)
@@ -140,29 +148,30 @@ export default function FeedScreen() {
         className="flex-1 overflow-y-auto scrollbar-farm px-4 pb-24"
       >
         <div className="max-w-md mx-auto pt-3">
-          {isLoading && page === 1 ? (
+          {/* First load: show spinner */}
+          {!initialized && (
             <div className="flex justify-center py-16">
               <SunflowerSpinner />
             </div>
-          ) : posts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 gap-4 text-center"
-            >
+          )}
+
+          {/* Empty state */}
+          {initialized && posts.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="text-5xl">🌻</div>
               <p className="text-sm text-green-600 font-medium">
                 {t('feed.no-posts', lang as Lang)}
               </p>
-            </motion.div>
-          ) : (
-            <AnimatePresence mode="popLayout">
-              <div className="flex flex-col gap-3">
-                {posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </div>
-            </AnimatePresence>
+            </div>
+          )}
+
+          {/* Posts list — plain div, no AnimatePresence */}
+          {initialized && posts.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
           )}
 
           {/* Load more indicator */}
@@ -181,19 +190,21 @@ export default function FeedScreen() {
       </div>
 
       {/* FAB - Create Post */}
-      <motion.div
-        className="fixed bottom-20 right-4 z-30 max-w-md"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, delay: 0.5 }}
-      >
-        <Button
-          onClick={() => setScreen('create-post')}
-          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-green-900 shadow-lg shadow-yellow-400/30 transition-all duration-200"
+      {initialized && (
+        <motion.div
+          className="fixed bottom-20 right-4 z-30 max-w-md"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, delay: 0.3 }}
         >
-          <Plus className="w-6 h-6" />
-        </Button>
-      </motion.div>
+          <Button
+            onClick={() => setScreen('create-post')}
+            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-green-900 shadow-lg shadow-yellow-400/30 transition-all duration-200"
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+        </motion.div>
+      )}
     </div>
   )
 }

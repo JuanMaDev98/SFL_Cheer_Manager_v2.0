@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import FarmBackground from '@/components/shared/FarmBackground'
 import BottomNav from '@/components/shared/BottomNav'
@@ -69,17 +68,8 @@ export default function SunflowerApp() {
 
   return (
     <FarmBackground>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={screen}
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -10 }}
-          transition={{ duration: 0.2 }}
-        >
-          {renderScreen()}
-        </motion.div>
-      </AnimatePresence>
+      {/* No AnimatePresence — renders instantly without flash/jump */}
+      {renderScreen()}
 
       {showNav && <BottomNav />}
 
