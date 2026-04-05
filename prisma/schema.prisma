@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  telegramId    String?  @unique
+  nickname      String
+  playerId      String
+  avatarIndex   Int      @default(0)
+  helpersGiven  Int      @default(0)
+  helpersReceived Int    @default(0)
+  joinedPosts   HelperJoin[]
+  ownPosts      FarmPost[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FarmPost {
+  id            String   @id @default(cuid())
+  title         String
+  message       String
+  farmId        String
+  category      String   @default("cleaning") // cleaning, cooking, monument, fruit
+  helpersNeeded Int      @default(10)
+  helpersCount  Int      @default(0)
+  isActive      Boolean  @default(true)
+  ownerId       String
+  owner         User     @relation(fields: [ownerId], references: [id])
+  helpers       HelperJoin[]
+  chatMessages  ChatMessage[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model HelperJoin {
+  id        String   @id @default(cuid())
+  postId    String
+  post      FarmPost @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  status    String   @default("joined") // joined, confirmed
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  postId    String
+  post      FarmPost @relation(fields: [postId], references: [id])
+  userId    String
+  nickname  String
+  content   String
+  createdAt DateTime @default(now())
+}

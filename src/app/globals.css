@@ -1,0 +1,291 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #f0fdf4;
+  --foreground: #14532d;
+  --card: rgba(255, 255, 255, 0.92);
+  --card-foreground: #14532d;
+  --popover: #ffffff;
+  --popover-foreground: #14532d;
+  --primary: #16a34a;
+  --primary-foreground: #ffffff;
+  --secondary: #dcfce7;
+  --secondary-foreground: #14532d;
+  --muted: #f0fdf4;
+  --muted-foreground: #15803d;
+  --accent: #fef9c3;
+  --accent-foreground: #854d0e;
+  --destructive: #ef4444;
+  --border: #bbf7d0;
+  --input: #bbf7d0;
+  --ring: #22c55e;
+  --chart-1: #facc15;
+  --chart-2: #22c55e;
+  --chart-3: #f97316;
+  --chart-4: #84cc16;
+  --chart-5: #eab308;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ===== Custom Animations ===== */
+
+@keyframes sunflower-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes sunflower-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(3deg); }
+  66% { transform: translateY(-6px) rotate(-2deg); }
+}
+
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes progress-fill {
+  0% { stroke-dashoffset: var(--circumference); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Animation utility classes */
+.animate-sunflower-spin {
+  animation: sunflower-spin 3s linear infinite;
+}
+
+.animate-sunflower-pulse {
+  animation: sunflower-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-bounce-soft {
+  animation: bounce-soft 1.5s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.4) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.progress-circle-transition {
+  transition: stroke-dashoffset 0.8s ease-out;
+}
+
+/* ===== Farm-themed Badge Classes ===== */
+
+.badge-cleaning {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-cooking {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.badge-monument {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge-fruit {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* ===== Chat Bubbles ===== */
+
+.bubble-mine {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+}
+
+.bubble-other {
+  background: linear-gradient(135deg, #fef9c3, #fde68a);
+  color: #854d0e;
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 2px 8px rgba(254, 249, 195, 0.3);
+}
+
+/* ===== Card Hover Effects ===== */
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.12);
+}
+
+/* ===== Custom Scrollbar ===== */
+
+.scrollbar-farm {
+  scrollbar-width: thin;
+  scrollbar-color: #86efac #f0fdf4;
+}
+
+.scrollbar-farm::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-farm::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-farm::-webkit-scrollbar-thumb {
+  background: #86efac;
+  border-radius: 4px;
+}
+
+.scrollbar-farm::-webkit-scrollbar-thumb:hover {
+  background: #4ade80;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== Farm Pattern Background ===== */
+
+.farm-pattern {
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(250, 204, 21, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.03) 0%, transparent 70%);
+}
+
+/* ===== Safe Area Padding (Telegram Mini App) ===== */
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 12px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* ===== Mobile Optimizations ===== */
+
+@media (max-width: 480px) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 8px);
+  }
+}
+
+/* Prevent text selection on interactive elements */
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Input reset for mobile */
+input, textarea {
+  font-size: 16px !important; /* Prevents iOS zoom */
+}
+
+/* ===== Telegram Mini App Theme Variables ===== */
+
+:root {
+  --tg-theme-bg-color: #f0fdf4;
+  --tg-theme-text-color: #14532d;
+  --tg-theme-hint-color: #15803d;
+  --tg-theme-button-color: #22c55e;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #dcfce7;
+}
