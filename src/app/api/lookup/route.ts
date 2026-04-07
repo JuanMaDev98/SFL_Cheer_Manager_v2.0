@@ -13,17 +13,24 @@ export async function GET(request: Request) {
       `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
       {
         headers: {
-          Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; SFL-Cheer-Manager/1.0)',
+          Accept: 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Origin: 'http://localhost:3000',
+          Referer: 'http://localhost:3000/',
         },
       }
     )
+
+    console.log('[lookup] SFL API status:', res.status, 'for farmId:', farmId)
+    const text = await res.text()
+    console.log('[lookup] SFL API response:', text.substring(0, 300))
 
     if (!res.ok) {
       return NextResponse.json({ error: 'Farm not found' }, { status: 404 })
     }
 
-    const data = await res.json()
+    const data = JSON.parse(text)
 
     return NextResponse.json({
       username: data.username,
