@@ -20,26 +20,21 @@ interface SflLandInfo {
 }
 
 export default function RegisterScreen() {
-  const { lang, setUser, setScreen, setLoading } = useAppStore()
+  const { lang, setUser, setScreen } = useAppStore()
   const [step, setStep] = useState<Step>('input')
   const [farmId, setFarmId] = useState('')
   const [error, setError] = useState('')
   const [landInfo, setLandInfo] = useState<SflLandInfo | null>(null)
   const [avatarIndex] = useState(Math.floor(Math.random() * 6))
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
   }
 
-  const validateFarmId = (val: string): string | undefined => {
-    if (!val || !/^\d+$/.test(val)) return t('login.farmId.error', lang as Lang)
-    return undefined
-  }
-
   const handleVerify = async () => {
-    const err = validateFarmId(farmId)
-    if (err) {
-      setError(err)
+    if (!farmId || !/^\d+$/.test(farmId)) {
+      setError(t('login.farmId.error', lang as Lang))
       haptic([50, 50, 50])
       return
     }
@@ -51,30 +46,20 @@ export default function RegisterScreen() {
     try {
       const res = await fetch(
         `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-          },
-        },
+        { headers: { Accept: 'application/json' } }
       )
 
-      if (!res.ok) {
-        throw new Error('not_found')
-      }
+      if (!res.ok) throw new Error('not_found')
 
       const data = await res.json()
+      const username = data.username
 
-      const landInfoNormalized: SflLandInfo = {
-        id: String(data.id ?? data.farm_id ?? data.farmId ?? farmId),
-        username: String(data.username ?? data.name ?? data.nickname ?? data.farmer ?? 'Farmer'),
-      }
-
-      if (!landInfoNormalized.username || landInfoNormalized.username === 'undefined') {
+      if (!username || username === 'undefined') {
         throw new Error('no_username')
       }
 
       haptic([50, 100, 50])
-      setLandInfo(landInfoNormalized)
+      setLandInfo({ id: farmId, username })
       setStep('confirm')
     } catch {
       haptic([100])
@@ -84,17 +69,18 @@ export default function RegisterScreen() {
   }
 
   const handleConfirm = async () => {
+    if (!landInfo) return
     haptic([50])
-    setLoading(true)
+    setIsSubmitting(true)
 
     try {
-      const nickname = landInfo!.username
-      const playerId = landInfo!.id
-
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, playerId }),
+        body: JSON.stringify({
+          nickname: landInfo.username,
+          playerId: landInfo.id,
+        }),
       })
 
       if (!res.ok) throw new Error('Failed to register')
@@ -106,8 +92,9 @@ export default function RegisterScreen() {
     } catch {
       haptic([100])
       setError(t('general.error', lang as Lang))
+      setStep('error')
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -115,6 +102,8 @@ export default function RegisterScreen() {
     haptic([20])
     setLandInfo(null)
     setStep('input')
+    setFarmId('')
+    setError('')
   }
 
   return (
@@ -146,7 +135,7 @@ export default function RegisterScreen() {
           </p>
         </div>
 
-        {/* Step: Input */}
+        {/* Step: Input farm_id */}
         {step === 'input' && (
           <form
             onSubmit={(e) => {
@@ -171,7 +160,6 @@ export default function RegisterScreen() {
                   error ? 'border-red-300' : ''
                 }`}
                 inputMode="numeric"
-                maxLength={8}
                 autoComplete="off"
               />
               {error && (
@@ -236,7 +224,7 @@ export default function RegisterScreen() {
           </motion.div>
         )}
 
-        {/* Step: Confirm */}
+        {/* Step: Confirm — solo muestra username */}
         {step === 'confirm' && landInfo && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -250,7 +238,7 @@ export default function RegisterScreen() {
               animate={{ opacity: 1, y: 0 }}
               className="w-full space-y-4"
             >
-              <div className="text-center mb-2">
+              <div className="text-center">
                 <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-1" />
                 <h2 className="text-lg font-bold text-green-900">
                   {t('login.confirm.title', lang as Lang)}
@@ -260,30 +248,22 @@ export default function RegisterScreen() {
                 </p>
               </div>
 
-              <div className="rounded-xl border-2 border-green-200 bg-white/90 p-4 space-y-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-green-500 font-semibold">
-                    {t('login.confirm.nickname', lang as Lang)}
-                  </p>
-                  <p className="text-lg font-bold text-green-900">
-                    {landInfo.username}
-                  </p>
-                </div>
-                <div className="border-t border-green-100">
-                  <p className="text-[10px] uppercase tracking-wider text-green-500 font-semibold">
-                    {t('login.confirm.farmId', lang as Lang)}
-                  </p>
-                  <p className="text-lg font-bold text-green-900">
-                    {landInfo.id}
-                  </p>
-                </div>
+              {/* Username no editable */}
+              <div className="rounded-xl border-2 border-green-200 bg-white/90 p-4 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-green-500 font-semibold mb-1">
+                  {t('login.confirm.username', lang as Lang)}
+                </p>
+                <p className="text-xl font-bold text-green-900">
+                  {landInfo.username}
+                </p>
               </div>
 
               <div className="flex flex-col gap-2 mt-2">
                 <motion.div whileTap={{ scale: 0.97 }}>
                   <Button
                     onClick={handleConfirm}
-                    className="w-full h-13 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-base font-bold shadow-lg shadow-green-600/25"
+                    disabled={isSubmitting}
+                    className="w-full h-13 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-base font-bold shadow-lg shadow-green-600/25 disabled:opacity-60"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
                     {t('login.confirm.button', lang as Lang)}
@@ -294,6 +274,7 @@ export default function RegisterScreen() {
                   variant="ghost"
                   className="w-full h-10 text-green-600 hover:text-green-800"
                 >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
                   {t('login.confirm.back', lang as Lang)}
                 </Button>
               </div>
