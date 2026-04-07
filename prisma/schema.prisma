@@ -11,7 +11,7 @@ model User {
   id            String   @id @default(cuid())
   telegramId    String?  @unique
   nickname      String
-  playerId      String
+  playerId    String @unique
   avatarIndex   Int      @default(0)
   helpersGiven  Int      @default(0)
   helpersReceived Int    @default(0)
