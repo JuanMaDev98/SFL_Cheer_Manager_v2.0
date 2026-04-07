@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Save, AlertCircle } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,59 +12,85 @@ import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import type { Lang } from '@/lib/i18n'
 
-const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
+type Step = 'input' | 'loading' | 'error' | 'confirm'
+
+interface SflLandInfo {
+  id: string
+  username: string
+}
 
 export default function RegisterScreen() {
-  const { lang, setUser, setScreen } = useAppStore()
-  const [nickname, setNickname] = useState('')
-  const [playerId, setPlayerId] = useState('')
-  const [avatarIndex, setLocalAvatar] = useState(Math.floor(Math.random() * 6))
-  const [errors, setErrors] = useState<{ nickname?: string; playerId?: string }>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { lang, setUser, setScreen, setLoading } = useAppStore()
+  const [step, setStep] = useState<Step>('input')
+  const [farmId, setFarmId] = useState('')
+  const [error, setError] = useState('')
+  const [landInfo, setLandInfo] = useState<SflLandInfo | null>(null)
+  const [avatarIndex] = useState(Math.floor(Math.random() * 6))
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
   }
 
-  const validateNickname = (val: string): string | undefined => {
-    if (!val) return t('reg.nickname.error', lang as Lang)
-    if (!NICKNAME_REGEX.test(val)) return t('reg.nickname.error', lang as Lang)
+  const validateFarmId = (val: string): string | undefined => {
+    if (!val || !/^\d+$/.test(val)) return t('login.farmId.error', lang as Lang)
     return undefined
   }
 
-  const validatePlayerId = (val: string): string | undefined => {
-    if (!val || val.length < 2) return t('reg.playerId.error', lang as Lang)
-    return undefined
-  }
-
-  useEffect(() => {
-    if (nickname) {
-      setErrors((prev) => ({ ...prev, nickname: validateNickname(nickname) }))
-    }
-  }, [nickname])
-
-  useEffect(() => {
-    if (playerId) {
-      setErrors((prev) => ({ ...prev, playerId: validatePlayerId(playerId) }))
-    }
-  }, [playerId])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const nickErr = validateNickname(nickname)
-    const idErr = validatePlayerId(playerId)
-    setErrors({ nickname: nickErr, playerId: idErr })
-
-    if (nickErr || idErr) {
+  const handleVerify = async () => {
+    const err = validateFarmId(farmId)
+    if (err) {
+      setError(err)
       haptic([50, 50, 50])
       return
     }
 
     haptic([50])
-    setIsSubmitting(true)
+    setError('')
+    setStep('loading')
 
     try {
+      const res = await fetch(
+        `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          },
+        },
+      )
+
+      if (!res.ok) {
+        throw new Error('not_found')
+      }
+
+      const data = await res.json()
+
+      const landInfoNormalized: SflLandInfo = {
+        id: String(data.id ?? data.farm_id ?? data.farmId ?? farmId),
+        username: String(data.username ?? data.name ?? data.nickname ?? data.farmer ?? 'Farmer'),
+      }
+
+      if (!landInfoNormalized.username || landInfoNormalized.username === 'undefined') {
+        throw new Error('no_username')
+      }
+
+      haptic([50, 100, 50])
+      setLandInfo(landInfoNormalized)
+      setStep('confirm')
+    } catch {
+      haptic([100])
+      setError(t('login.error.notFound', lang as Lang))
+      setStep('error')
+    }
+  }
+
+  const handleConfirm = async () => {
+    haptic([50])
+    setLoading(true)
+
+    try {
+      const nickname = landInfo!.username
+      const playerId = landInfo!.id
+
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,10 +105,16 @@ export default function RegisterScreen() {
       setScreen('feed')
     } catch {
       haptic([100])
-      setErrors({ nickname: t('general.error', lang as Lang) })
+      setError(t('general.error', lang as Lang))
     } finally {
-      setIsSubmitting(false)
+      setLoading(false)
     }
+  }
+
+  const handleBack = () => {
+    haptic([20])
+    setLandInfo(null)
+    setStep('input')
   }
 
   return (
@@ -107,107 +139,167 @@ export default function RegisterScreen() {
             />
           </motion.div>
           <h1 className="text-xl font-bold text-green-900">
-            {t('reg.title', lang as Lang)}
+            {t('login.title', lang as Lang)}
           </h1>
           <p className="text-xs text-green-600 mt-1 leading-relaxed">
-            {t('reg.subtitle', lang as Lang)}
+            {t('login.subtitle', lang as Lang)}
           </p>
         </div>
 
-        {/* Avatar preview */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', delay: 0.2 }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              haptic([20])
-              setLocalAvatar((prev) => (prev + 1) % 6)
+        {/* Step: Input */}
+        {step === 'input' && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleVerify()
             }}
-            className="flex flex-col items-center gap-1 group"
+            className="w-full flex flex-col gap-4"
           >
-            <BumpkinAvatar avatarIndex={avatarIndex} size="lg" showRing />
-            <span className="text-[10px] text-green-500 opacity-0 group-hover:opacity-100 transition-opacity">
-              Tap to change
-            </span>
-          </button>
-        </motion.div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-          {/* Nickname */}
-          <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-green-800">
-              {t('reg.nickname', lang as Lang)}
-            </Label>
-            <Input
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder={t('reg.nickname.placeholder', lang as Lang)}
-              className={`rounded-xl border-green-200 bg-white/90 focus:border-green-400 h-11 ${
-                errors.nickname ? 'border-red-300' : ''
-              }`}
-              maxLength={20}
-              autoComplete="off"
-            />
-            {errors.nickname && (
-              <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-1 text-xs text-red-500"
-              >
-                <AlertCircle className="w-3 h-3" />
-                {errors.nickname}
-              </motion.p>
-            )}
-          </div>
-
-          {/* Player ID */}
-          <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-green-800">
-              {t('reg.playerId', lang as Lang)}
-            </Label>
-            <Input
-              value={playerId}
-              onChange={(e) => setPlayerId(e.target.value)}
-              placeholder={t('reg.playerId.placeholder', lang as Lang)}
-              className={`rounded-xl border-green-200 bg-white/90 focus:border-green-400 h-11 ${
-                errors.playerId ? 'border-red-300' : ''
-              }`}
-              autoComplete="off"
-            />
-            {errors.playerId && (
-              <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-1 text-xs text-red-500"
-              >
-                <AlertCircle className="w-3 h-3" />
-                {errors.playerId}
-              </motion.p>
-            )}
-          </div>
-
-          {/* Submit */}
-          <motion.div whileTap={{ scale: 0.97 }} className="mt-2">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-13 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-base font-bold shadow-lg shadow-green-600/25 disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <span className="animate-pulse">{t('general.loading', lang as Lang)}</span>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {t('reg.button', lang as Lang)}
-                </>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-green-800">
+                {t('login.farmId', lang as Lang)}
+              </Label>
+              <Input
+                value={farmId}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^\d]/g, '')
+                  setFarmId(v)
+                  setError('')
+                }}
+                placeholder={t('login.farmId.placeholder', lang as Lang)}
+                className={`rounded-xl border-green-200 bg-white/90 focus:border-green-400 h-11 ${
+                  error ? 'border-red-300' : ''
+                }`}
+                inputMode="numeric"
+                maxLength={8}
+                autoComplete="off"
+              />
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-1 text-xs text-red-500"
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  {error}
+                </motion.p>
               )}
+            </div>
+
+            <motion.div whileTap={{ scale: 0.97 }} className="mt-2">
+              <Button
+                type="submit"
+                disabled={farmId.length === 0}
+                className="w-full h-13 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-base font-bold shadow-lg shadow-green-600/25 disabled:opacity-60"
+              >
+                <ArrowRight className="w-4 h-4 mr-2" />
+                {t('login.button', lang as Lang)}
+              </Button>
+            </motion.div>
+          </form>
+        )}
+
+        {/* Step: Loading */}
+        {step === 'loading' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full flex flex-col items-center gap-4 py-8"
+          >
+            <div className="animate-spin w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full" />
+            <p className="text-sm text-green-600 animate-pulse">
+              {t('login.loading', lang as Lang)}
+            </p>
+          </motion.div>
+        )}
+
+        {/* Step: Error */}
+        {step === 'error' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full flex flex-col items-center gap-4"
+          >
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 w-full text-center">
+              <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+            <Button
+              type="button"
+              onClick={handleBack}
+              variant="outline"
+              className="w-full h-12 rounded-2xl border-green-300 text-green-700 hover:bg-green-50"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t('login.confirm.back', lang as Lang)}
             </Button>
           </motion.div>
-        </form>
+        )}
+
+        {/* Step: Confirm */}
+        {step === 'confirm' && landInfo && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full flex flex-col items-center gap-5"
+          >
+            <BumpkinAvatar avatarIndex={avatarIndex} size="lg" showRing />
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full space-y-4"
+            >
+              <div className="text-center mb-2">
+                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-1" />
+                <h2 className="text-lg font-bold text-green-900">
+                  {t('login.confirm.title', lang as Lang)}
+                </h2>
+                <p className="text-xs text-green-600">
+                  {t('login.confirm.subtitle', lang as Lang)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border-2 border-green-200 bg-white/90 p-4 space-y-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-green-500 font-semibold">
+                    {t('login.confirm.nickname', lang as Lang)}
+                  </p>
+                  <p className="text-lg font-bold text-green-900">
+                    {landInfo.username}
+                  </p>
+                </div>
+                <div className="border-t border-green-100">
+                  <p className="text-[10px] uppercase tracking-wider text-green-500 font-semibold">
+                    {t('login.confirm.farmId', lang as Lang)}
+                  </p>
+                  <p className="text-lg font-bold text-green-900">
+                    {landInfo.id}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-2">
+                <motion.div whileTap={{ scale: 0.97 }}>
+                  <Button
+                    onClick={handleConfirm}
+                    className="w-full h-13 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white text-base font-bold shadow-lg shadow-green-600/25"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {t('login.confirm.button', lang as Lang)}
+                  </Button>
+                </motion.div>
+                <Button
+                  onClick={handleBack}
+                  variant="ghost"
+                  className="w-full h-10 text-green-600 hover:text-green-800"
+                >
+                  {t('login.confirm.back', lang as Lang)}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )
