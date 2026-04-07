@@ -44,10 +44,8 @@ export default function RegisterScreen() {
     setStep('loading')
 
     try {
-      const res = await fetch(
-        `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
-        { headers: { Accept: 'application/json' } }
-      )
+      // Use server-side proxy to avoid Cloudflare blocking browser requests
+      const res = await fetch(`/api/lookup?farmId=${farmId}`)
 
       if (!res.ok) throw new Error('not_found')
 
