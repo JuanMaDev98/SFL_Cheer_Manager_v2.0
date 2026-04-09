@@ -46,24 +46,29 @@ export default function RegisterScreen() {
     try {
       const res = await fetch(
         `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
-        { headers: { Accept: 'application/json' } }
+        { 
+          headers: { Accept: 'application/json' },
+          mode: 'cors',
+        }
       )
 
-      if (!res.ok) throw new Error('not_found')
+      if (!res.ok) throw new Error(`API error: ${res.status}`)
 
       const data = await res.json()
       const username = data.username
 
-      if (!username || username === 'undefined') {
+      if (!username || username === 'undefined' || !data.farm_id) {
         throw new Error('no_username')
       }
 
+      console.log('[Register] SFL API response:', data)
       haptic([50, 100, 50])
       setLandInfo({ id: farmId, username })
       setStep('confirm')
-    } catch {
+    } catch (err) {
+      console.error('[Register] handleVerify error:', err)
       haptic([100])
-      setError(t('login.error.notFound', lang as Lang))
+      setError(t('login.error.notFound', lang as Lang) + ` (${err instanceof Error ? err.message : 'unknown'})`)
       setStep('error')
     }
   }
