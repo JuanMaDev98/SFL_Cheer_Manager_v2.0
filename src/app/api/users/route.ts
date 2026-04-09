@@ -35,20 +35,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Upsert by playerId so returning users are recognized
-    const user = await db.user.upsert({
+    // First try to find existing user
+    let user = await db.user.findUnique({
       where: { playerId },
-      update: {
-        nickname,
-        telegramId: telegramId || undefined,
-      },
-      create: {
-        telegramId: telegramId || null,
-        nickname,
-        playerId,
-        avatarIndex: Math.floor(Math.random() * 6),
-      },
     })
+
+    if (user) {
+      // Update nickname if changed
+      user = await db.user.update({
+        where: { playerId },
+        data: {
+          nickname,
+          telegramId: telegramId || undefined,
+        },
+      })
+    } else {
+      // Create new user
+      user = await db.user.create({
+        data: {
+          telegramId: telegramId || null,
+          nickname,
+          playerId,
+          avatarIndex: Math.floor(Math.random() * 6),
+        },
+      })
+    }
 
     return NextResponse.json(user, { status: 201 })
   } catch (error) {
