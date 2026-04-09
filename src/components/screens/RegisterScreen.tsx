@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Globe } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,13 +20,15 @@ interface SflLandInfo {
 }
 
 export default function RegisterScreen() {
-  const { lang, setUser, setScreen } = useAppStore()
+  const { lang, setLang, setUser, setScreen } = useAppStore()
   const [step, setStep] = useState<Step>('input')
   const [farmId, setFarmId] = useState('')
   const [error, setError] = useState('')
   const [landInfo, setLandInfo] = useState<SflLandInfo | null>(null)
   const [avatarIndex] = useState(Math.floor(Math.random() * 6))
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const toggleLang = () => setLang(lang === 'es' ? 'en' : 'es')
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
@@ -115,6 +117,15 @@ export default function RegisterScreen() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm flex flex-col items-center gap-5"
       >
+        {/* Language toggle */}
+        <button
+          onClick={toggleLang}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-green-700 bg-green-100 hover:bg-green-200 transition-colors"
+        >
+          <Globe className="w-3.5 h-3.5" />
+          {lang === 'es' ? 'EN' : 'ES'}
+        </button>
+
         {/* Header */}
         <div className="text-center">
           <motion.div
