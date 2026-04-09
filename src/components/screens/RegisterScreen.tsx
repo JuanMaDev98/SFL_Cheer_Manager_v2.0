@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Globe } from 'lucide-react'
+import { ArrowRight, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { useAppStore } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
 type Step = 'input' | 'loading' | 'error' | 'confirm'
@@ -20,15 +21,13 @@ interface SflLandInfo {
 }
 
 export default function RegisterScreen() {
-  const { lang, setLang, setUser, setScreen } = useAppStore()
+  const { lang, setUser, setScreen } = useAppStore()
   const [step, setStep] = useState<Step>('input')
   const [farmId, setFarmId] = useState('')
   const [error, setError] = useState('')
   const [landInfo, setLandInfo] = useState<SflLandInfo | null>(null)
   const [avatarIndex] = useState(Math.floor(Math.random() * 6))
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const toggleLang = () => setLang(lang === 'es' ? 'en' : 'es')
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
@@ -111,21 +110,17 @@ export default function RegisterScreen() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-8 safe-top">
+    <div className="flex flex-col items-center min-h-screen px-4 py-8 safe-top relative">
+      {/* Language toggle - top right, consistent across all screens */}
+      <div className="absolute top-4 right-4">
+        <LanguageToggle />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm flex flex-col items-center gap-5"
       >
-        {/* Language toggle */}
-        <button
-          onClick={toggleLang}
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-green-700 bg-green-100 hover:bg-green-200 transition-colors"
-        >
-          <Globe className="w-3.5 h-3.5" />
-          {lang === 'es' ? 'EN' : 'ES'}
-        </button>
-
         {/* Header */}
         <div className="text-center">
           <motion.div
