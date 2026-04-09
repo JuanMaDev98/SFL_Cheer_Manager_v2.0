@@ -45,11 +45,8 @@ export default function RegisterScreen() {
 
     try {
       const res = await fetch(
-        `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
-        { 
-          headers: { Accept: 'application/json' },
-          mode: 'cors',
-        }
+        `/api/lookup?farmId=${farmId}`,
+        { headers: { Accept: 'application/json' } }
       )
 
       if (!res.ok) throw new Error(`API error: ${res.status}`)
