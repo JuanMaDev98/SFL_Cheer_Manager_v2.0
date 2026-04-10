@@ -2,12 +2,16 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(request: Request) {
+  if (!supabase) {
+    console.error('[users GET] Supabase client not initialized - missing env vars')
+    return NextResponse.json({ error: 'Database not configured', details: 'NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing' }, { status: 500 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const playerId = searchParams.get('playerId')
 
     console.log('[users GET] playerId:', playerId)
-    console.log('[users GET] supabase url:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET')
 
     if (playerId) {
       const { data: user, error } = await supabase
@@ -38,11 +42,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!supabase) {
+    console.error('[users POST] Supabase client not initialized - missing env vars')
+    return NextResponse.json({ error: 'Database not configured', details: 'NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing' }, { status: 500 })
+  }
+
   try {
     const { telegramId, nickname, playerId } = await request.json()
 
     console.log('[users POST] Input:', { telegramId, nickname, playerId })
-    console.log('[users POST] supabase url:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET')
 
     if (!nickname || !playerId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
