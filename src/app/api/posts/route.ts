@@ -1,5 +1,5 @@
-import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   try {
@@ -8,38 +8,31 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    let where: any = { isActive: true }
+    let query = supabase
+      .from('FarmPost')
+      .select(`
+        *,
+        owner:User(id, nickname, avatarIndex),
+        helpers:HelperJoin(
+          user:User(id, nickname, avatarIndex)
+        )
+      `, { count: 'exact' })
+      .eq('isActive', true)
+      .order('createdAt', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
 
     if (filter === 'urgent') {
-      where.helpersCount = { lt: 3 }
+      query = query.lt('helpersCount', 3)
     } else if (filter === 'almost-full') {
-      where.helpersCount = { gte: 7 }
+      query = query.gte('helpersCount', 7)
     } else if (filter === 'cooking') {
-      where.category = 'cooking'
+      query = query.eq('category', 'cooking')
     }
 
-    const [posts, total] = await Promise.all([
-      db.farmPost.findMany({
-        where,
-        include: {
-          owner: {
-            select: { id: true, nickname: true, avatarIndex: true },
-          },
-          helpers: {
-            include: {
-              user: { select: { id: true, nickname: true, avatarIndex: true } },
-            },
-          },
-          _count: { select: { helpers: true, chatMessages: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      db.farmPost.count({ where }),
-    ])
+    const { data: posts, error, count } = await query
 
-    return NextResponse.json({ posts, total, page, limit })
+    if (error) throw error
+    return NextResponse.json({ posts: posts || [], total: count || 0, page, limit })
   } catch (error) {
     console.error('Error fetching posts:', error)
     return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 })
@@ -55,20 +48,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const post = await db.farmPost.create({
-      data: {
+    const { data: post, error } = await supabase
+      .from('FarmPost')
+      .insert({
         title,
         message,
         farmId,
         category: category || 'cleaning',
         helpersNeeded: helpersNeeded || 10,
         ownerId,
-      },
-      include: {
-        owner: { select: { id: true, nickname: true, avatarIndex: true } },
-      },
-    })
+      })
+      .select('*, owner:User(id, nickname, avatarIndex)')
+      .single()
 
+    if (error) throw error
     return NextResponse.json(post, { status: 201 })
   } catch (error) {
     console.error('Error creating post:', error)
