@@ -25,47 +25,49 @@ export function validateInitData(initData: string): TelegramUser | null {
 
   try {
     const params = new URLSearchParams(initData)
-    const hash = params.get('hash')
-    if (!hash) {
+    const receivedHash = params.get('hash')
+    if (!receivedHash) {
       console.error('[Telegram] No hash in initData')
       return null
     }
 
-    // Remove hash from params for data check string
     params.delete('hash')
 
-    // Step 1: Sort params alphabetically by key
+    // Step 1: Build data_check_string = "key1=value1\nkey2=value2\n..."
+    // Values need to be URL-decoded
     const sortedEntries = Array.from(params.entries())
       .sort(([a], [b]) => a.localeCompare(b))
 
-    // Step 2: Build data_check_string = "key1=value1\nkey2=value2\n..."
     const dataCheckString = sortedEntries
       .map(([key, value]) => `${key}=${decodeURIComponent(value)}`)
       .join('\n')
 
-    console.log('[Telegram] dataCheckString sample:', dataCheckString.substring(0, 100))
+    console.log('[Telegram] dataCheckString:', dataCheckString.substring(0, 80) + '...')
 
-    // Step 3: Compute secret_key = HMAC_SHA256("WebAppData", bot_token)
+    // Step 2: Compute secret_key = HMAC_SHA256("WebAppData", bot_token)
     const secretKey = crypto
       .createHmac('sha256', 'WebAppData')
       .update(BOT_TOKEN)
       .digest()
 
-    // Step 4: Compute data_check_hash = HMAC_SHA256(secret_key, data_check_string)
-    const dataCheckHash = crypto
-      .createHmac('sha256', secretKey)
-      .update(dataCheckString, 'utf8')
-      .digest('base64')
+    // Step 3: Compute data_check_hash = HMAC_SHA256(secret_key, data_check_string)
+    // Output is raw binary, then converted to base64, then made URL-safe
+    const hmac = crypto.createHmac('sha256', secretKey)
+    const dataCheckBuffer = hmac.update(dataCheckString, 'utf8').digest()
+    const dataCheckHash = dataCheckBuffer.toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
 
     console.log('[Telegram] Computed hash:', dataCheckHash)
-    console.log('[Telegram] Received hash:', hash)
+    console.log('[Telegram] Received hash:', receivedHash)
 
-    if (dataCheckHash !== hash) {
+    if (dataCheckHash !== receivedHash) {
       console.error('[Telegram] Hash mismatch')
       return null
     }
 
-    // Step 5: Check auth_date is not older than 24h
+    // Step 4: Check auth_date is not older than 24h
     const authDate = parseInt(params.get('auth_date') || '0')
     const now = Math.floor(Date.now() / 1000)
     if (now - authDate > 86400) {
