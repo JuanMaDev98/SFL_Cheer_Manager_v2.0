@@ -17,10 +17,18 @@ export const MANDATORY_CHATS = [
 
 // Validate initData from Telegram Mini App
 export async function validateInitData(initData: string): Promise<TelegramUser | null> {
+  if (!BOT_TOKEN) {
+    console.error('[Telegram] BOT_TOKEN not configured in environment')
+    return null
+  }
+
   try {
     const params = new URLSearchParams(initData)
     const hash = params.get('hash')
-    if (!hash) return null
+    if (!hash) {
+      console.error('[Telegram] No hash in initData')
+      return null
+    }
 
     params.delete('hash')
 
@@ -66,6 +74,8 @@ export async function validateInitData(initData: string): Promise<TelegramUser |
 
     if (finalBase64 !== hash) {
       console.error('[Telegram] Hash mismatch')
+      console.error('[Telegram] Expected:', finalBase64.substring(0, 20) + '...')
+      console.error('[Telegram] Got:', hash.substring(0, 20) + '...')
       return null
     }
 
@@ -78,7 +88,10 @@ export async function validateInitData(initData: string): Promise<TelegramUser |
     }
 
     const userStr = params.get('user')
-    if (!userStr) return null
+    if (!userStr) {
+      console.error('[Telegram] No user in initData')
+      return null
+    }
 
     return JSON.parse(decodeURIComponent(userStr)) as TelegramUser
   } catch (err) {
@@ -92,6 +105,10 @@ export async function checkMembership(
   userId: number,
   chatUsername: string
 ): Promise<{ isMember: boolean; status?: string }> {
+  if (!BOT_TOKEN) {
+    return { isMember: false, status: 'bot_not_configured' }
+  }
+
   try {
     const res = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`,
