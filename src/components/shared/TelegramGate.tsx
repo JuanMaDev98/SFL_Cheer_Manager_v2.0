@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store/useAppStore'
-import { getTelegramUser, readyTelegramApp } from '@/lib/telegram'
 
 interface TelegramUser {
   id: number
@@ -29,9 +28,29 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function checkTelegram() {
-      const tgUser = getTelegramUser()
+      // @ts-ignore
+      const tg = window.Telegram?.WebApp
 
-      if (!tgUser) {
+      // Wait for Telegram WebApp to be fully ready
+      if (tg) {
+        await new Promise<void>(resolve => {
+          if (tg.ready) {
+            tg.ready()
+            tg.expand()
+          }
+          // Give it a moment to populate initData
+          setTimeout(resolve, 300)
+        })
+      }
+
+      // Now get user from initDataUnsafe
+      const tgUser = tg?.initDataUnsafe?.user as TelegramUser | undefined
+      const hasInitData = !!tg?.initData && !!tgUser
+
+      console.log('[TelegramGate] initData present:', !!tg?.initData)
+      console.log('[TelegramGate] user:', tgUser)
+
+      if (!hasInitData) {
         setNotInTelegram(true)
         setLoading(false)
         return
@@ -43,9 +62,10 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
         // Check subscription status
         const res = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
         const data = await res.json()
+        console.log('[TelegramGate] Subscription check:', data)
 
         if (!data.subscriptions) {
-          setError('Error checking subscriptions')
+          setError(data.error || 'Error checking subscriptions')
           setLoading(false)
           return
         }
@@ -62,13 +82,13 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
         await upsertUser(tgUser)
         setLoading(false)
       } catch (err) {
+        console.error('[TelegramGate] Error:', err)
         setError('Error de conexión. Intentá de nuevo.')
         setLoading(false)
       }
     }
 
     checkTelegram()
-    readyTelegramApp()
   }, [])
 
   async function upsertUser(tgUser: TelegramUser) {
@@ -94,9 +114,12 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
   }
 
   function openChat(username: string) {
-    if (typeof window !== 'undefined') {
-      // @ts-ignore
-      window.Telegram?.WebApp?.openTelegramLink(`https://t.me/${username}`)
+    // @ts-ignore
+    const tg = window.Telegram?.WebApp
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(`https://t.me/${username}`)
+    } else {
+      window.open(`https://t.me/${username}`, '_blank')
     }
   }
 
@@ -150,25 +173,34 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
         </p>
 
         <div className="w-full max-w-sm space-y-3">
-          {missing.map((sub) => (
+          {subscriptions.map((sub) => (
             <button
               key={sub.chat}
               onClick={() => openChat(sub.chat)}
-              className="w-full flex items-center justify-between p-4 bg-white rounded-xl border-2 border-green-200 hover:border-green-400 transition-colors"
+              className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-colors ${
+                sub.isMember
+                  ? 'border-green-300 bg-green-50'
+                  : 'border-green-200 hover:border-green-400 bg-white'
+              }`}
             >
               <div className="text-left">
                 <p className="font-bold text-green-800">{sub.name}</p>
                 <p className="text-xs text-green-500">@{sub.chat}</p>
+                {sub.status && (
+                  <p className="text-xs text-gray-400">Status: {sub.status}</p>
+                )}
               </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
-                UNIRSE
-              </span>
+              {sub.isMember ? (
+                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-lg">✓</span>
+              ) : (
+                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-lg">UNIRSE</span>
+              )}
             </button>
           ))}
         </div>
 
         <p className="text-green-500 text-xs mt-6">
-          Una vez unido, esperá unos segundos y tocá "Verificar"
+          Una vez unido, esperá y tocá "Verificar"
         </p>
 
         <button
