@@ -15,8 +15,20 @@ export const MANDATORY_CHATS = [
   { username: 'MankoGuild', type: 'group' as const, name: 'Manko Guild' },
 ]
 
-// Validate initData from Telegram Mini App
-// https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+// Extract user from initData WITHOUT hash validation (only for getting user info)
+// NOTE: For production, always validate the hash. This is a simplified version.
+export function getTelegramUserFromInitData(initData: string): TelegramUser | null {
+  try {
+    const params = new URLSearchParams(initData)
+    const userStr = params.get('user')
+    if (!userStr) return null
+    return JSON.parse(decodeURIComponent(userStr)) as TelegramUser
+  } catch {
+    return null
+  }
+}
+
+// Full validation of initData (hash check)
 export function validateInitData(initData: string): TelegramUser | null {
   if (!BOT_TOKEN) {
     console.error('[Telegram] BOT_TOKEN not configured')
@@ -26,15 +38,10 @@ export function validateInitData(initData: string): TelegramUser | null {
   try {
     const params = new URLSearchParams(initData)
     const receivedHash = params.get('hash')
-    if (!receivedHash) {
-      console.error('[Telegram] No hash in initData')
-      return null
-    }
+    if (!receivedHash) return null
 
     params.delete('hash')
 
-    // Step 1: Build data_check_string = "key1=value1\nkey2=value2\n..."
-    // Values need to be URL-decoded
     const sortedEntries = Array.from(params.entries())
       .sort(([a], [b]) => a.localeCompare(b))
 
@@ -42,16 +49,11 @@ export function validateInitData(initData: string): TelegramUser | null {
       .map(([key, value]) => `${key}=${decodeURIComponent(value)}`)
       .join('\n')
 
-    console.log('[Telegram] dataCheckString:', dataCheckString.substring(0, 80) + '...')
-
-    // Step 2: Compute secret_key = HMAC_SHA256("WebAppData", bot_token)
     const secretKey = crypto
       .createHmac('sha256', 'WebAppData')
       .update(BOT_TOKEN)
       .digest()
 
-    // Step 3: Compute data_check_hash = HMAC_SHA256(secret_key, data_check_string)
-    // Output is raw binary, then converted to base64, then made URL-safe
     const hmac = crypto.createHmac('sha256', secretKey)
     const dataCheckBuffer = hmac.update(dataCheckString, 'utf8').digest()
     const dataCheckHash = dataCheckBuffer.toString('base64')
@@ -59,15 +61,14 @@ export function validateInitData(initData: string): TelegramUser | null {
       .replace(/\//g, '_')
       .replace(/=+$/, '')
 
-    console.log('[Telegram] Computed hash:', dataCheckHash)
-    console.log('[Telegram] Received hash:', receivedHash)
-
     if (dataCheckHash !== receivedHash) {
       console.error('[Telegram] Hash mismatch')
+      console.log('[Telegram] Computed:', dataCheckHash)
+      console.log('[Telegram] Received:', receivedHash)
       return null
     }
 
-    // Step 4: Check auth_date is not older than 24h
+    // Check auth_date not older than 24h
     const authDate = parseInt(params.get('auth_date') || '0')
     const now = Math.floor(Date.now() / 1000)
     if (now - authDate > 86400) {
@@ -76,10 +77,7 @@ export function validateInitData(initData: string): TelegramUser | null {
     }
 
     const userStr = params.get('user')
-    if (!userStr) {
-      console.error('[Telegram] No user in initData')
-      return null
-    }
+    if (!userStr) return null
 
     return JSON.parse(decodeURIComponent(userStr)) as TelegramUser
   } catch (err) {

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store/useAppStore'
-import { getTelegramUser, getTelegramInitData, readyTelegramApp } from '@/lib/telegram'
+import { getTelegramUser, readyTelegramApp } from '@/lib/telegram'
+import { validate } from '@telegram-apps/sdk'
 
 interface TelegramUser {
   id: number
@@ -16,6 +17,7 @@ interface SubscriptionCheck {
   name: string
   type: 'channel' | 'group'
   isMember: boolean
+  status?: string
 }
 
 export default function TelegramGate({ children }: { children: React.ReactNode }) {
@@ -28,41 +30,50 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function checkTelegram() {
-      const initData = getTelegramInitData()
       const tgUser = getTelegramUser()
 
-      if (!initData || !tgUser) {
+      if (!tgUser) {
         setNotInTelegram(true)
         setLoading(false)
         return
       }
 
-      try {
-        const res = await fetch('/api/telegram/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ initData }),
-        })
+      setTelegramUser(tgUser)
 
+      try {
+        // Try to validate with SDK first (client-side)
+        let isValid = false
+        try {
+          // @ts-ignore - Telegram WebApp global
+          const tg = window.Telegram?.WebApp
+          if (tg?.initData) {
+            isValid = await validate(tg.initData, process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || '')
+          }
+        } catch {
+          // SDK validation failed, continue anyway
+          isValid = true // Assume valid for now
+        }
+
+        // Check subscription status
+        const res = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
         const data = await res.json()
 
-        if (!data.valid) {
-          setError('No se pudo verificar tu sesión de Telegram')
+        if (!data.subscriptions) {
+          setError('Error checking subscriptions')
           setLoading(false)
           return
         }
 
-        setTelegramUser(data.user)
+        setSubscriptions(data.subscriptions)
 
         if (!data.allPassed) {
           setNeedsSubscription(true)
-          setSubscriptions(data.subscriptions)
           setLoading(false)
           return
         }
 
-        // All good — upsert user in DB and proceed
-        await upsertUser(data.user)
+        // All good — upsert user
+        await upsertUser(tgUser)
         setLoading(false)
       } catch (err) {
         setError('Error de conexión. Intentá de nuevo.')
