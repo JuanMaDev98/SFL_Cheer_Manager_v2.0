@@ -71,6 +71,8 @@ interface AppState {
   // User
   user: UserProfile | null
   setUser: (user: UserProfile | null) => void
+  telegramUser: { id: number; first_name: string; username?: string } | null
+  setTelegramUser: (user: { id: number; first_name: string; username?: string } | null) => void
   isTelegramLinked: boolean
   setTelegramLinked: (linked: boolean) => void
 
@@ -121,6 +123,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // User
   user: null,
   setUser: (user) => set({ user }),
+  telegramUser: null,
+  setTelegramUser: (user) => set({ telegramUser: user }),
   isTelegramLinked: false,
   setTelegramLinked: (linked) => set({ isTelegramLinked: linked }),
 

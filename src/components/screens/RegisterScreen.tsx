@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { useAppStore } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
 type Step = 'input' | 'loading' | 'error' | 'confirm'
@@ -45,25 +46,27 @@ export default function RegisterScreen() {
 
     try {
       const res = await fetch(
-        `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
+        `/api/lookup?farmId=${farmId}`,
         { headers: { Accept: 'application/json' } }
       )
 
-      if (!res.ok) throw new Error('not_found')
+      if (!res.ok) throw new Error(`API error: ${res.status}`)
 
       const data = await res.json()
       const username = data.username
 
-      if (!username || username === 'undefined') {
+      if (!username || username === 'undefined' || !data.farm_id) {
         throw new Error('no_username')
       }
 
+      console.log('[Register] SFL API response:', data)
       haptic([50, 100, 50])
       setLandInfo({ id: farmId, username })
       setStep('confirm')
-    } catch {
+    } catch (err) {
+      console.error('[Register] handleVerify error:', err)
       haptic([100])
-      setError(t('login.error.notFound', lang as Lang))
+      setError(t('login.error.notFound', lang as Lang) + ` (${err instanceof Error ? err.message : 'unknown'})`)
       setStep('error')
     }
   }
@@ -107,7 +110,12 @@ export default function RegisterScreen() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-8 safe-top">
+    <div className="flex flex-col items-center min-h-screen px-4 py-8 safe-top relative">
+      {/* Language toggle - top right, consistent across all screens */}
+      <div className="absolute top-4 right-4">
+        <LanguageToggle />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
