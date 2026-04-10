@@ -10,7 +10,7 @@ export interface TelegramUser {
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 
-const MANDATORY_CHATS = [
+export const MANDATORY_CHATS = [
   { username: 'JuanMaYoutube', type: 'channel' as const, name: 'Canal de JuanMa' },
   { username: 'MankoGuild', type: 'group' as const, name: 'Manko Guild' },
 ]
