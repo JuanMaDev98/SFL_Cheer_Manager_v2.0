@@ -1,67 +1,33 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-export async function GET(request: Request) {
-  if (!supabase) {
-    console.error('[users GET] Supabase client not initialized - missing env vars')
-    return NextResponse.json({ error: 'Database not configured', details: 'NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing' }, { status: 500 })
-  }
+// Telegram bot token for validation
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 
-  try {
-    const { searchParams } = new URL(request.url)
-    const playerId = searchParams.get('playerId')
-
-    console.log('[users GET] playerId:', playerId)
-
-    if (playerId) {
-      const { data: user, error } = await supabase
-        .from('User')
-        .select('*')
-        .eq('playerId', playerId)
-        .maybeSingle()
-
-      console.log('[users GET] by playerId result:', { user, error })
-      if (error) throw error
-      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      return NextResponse.json(user)
-    }
-
-    const { data: users, error } = await supabase
-      .from('User')
-      .select('id, playerId, nickname, avatarIndex, helpersGiven, helpersReceived')
-      .order('createdAt', { ascending: false })
-      .limit(50)
-
-    console.log('[users GET] all users result:', { count: users?.length, error })
-    if (error) throw error
-    return NextResponse.json(users || [])
-  } catch (error) {
-    console.error('[users GET] Error:', error)
-    return NextResponse.json({ error: 'Failed to fetch users', details: String(error) }, { status: 500 })
-  }
-}
+// MANDATORY_CHATS constant to match client
+const MANDATORY_CHATS = [
+  { username: 'JuanMaYoutube', type: 'channel' as const, name: 'Canal de JuanMa' },
+  { username: 'MankoGuild', type: 'group' as const, name: 'Manko Guild' },
+]
 
 export async function POST(request: Request) {
-  if (!supabase) {
-    console.error('[users POST] Supabase client not initialized - missing env vars')
-    return NextResponse.json({ error: 'Database not configured', details: 'NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing' }, { status: 500 })
-  }
-
   try {
     const { telegramId, nickname, playerId } = await request.json()
 
-    console.log('[users POST] Input:', { telegramId, nickname, playerId })
-
-    if (!nickname || !playerId) {
+    if (!nickname) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Try to find existing user by playerId
-    const { data: existingUser, error: findError } = await supabase
+    console.log('[users POST] Input:', { telegramId, nickname, playerId })
+
+    // Find by telegramId (primary) or playerId (fallback)
+    let query = supabase
       .from('User')
       .select('*')
-      .eq('playerId', playerId)
+      .eq('telegramId', String(telegramId))
       .maybeSingle()
+
+    const { data: existingUser, error: findError } = await query
 
     console.log('[users POST] findExisting result:', { found: !!existingUser, error: findError })
 
@@ -73,11 +39,14 @@ export async function POST(request: Request) {
     let user
 
     if (existingUser) {
-      console.log('[users POST] Updating existing user:', existingUser.id)
+      // Update user
       const { data, error: updateError } = await supabase
         .from('User')
-        .update({ nickname, telegramId: telegramId || null })
-        .eq('playerId', playerId)
+        .update({
+          nickname,
+          playerId: playerId || existingUser.playerId,
+        })
+        .eq('telegramId', String(telegramId))
         .select()
         .single()
 
@@ -88,14 +57,14 @@ export async function POST(request: Request) {
       }
       user = data
     } else {
-      console.log('[users POST] Creating new user')
+      // Create new user
       const avatarIndex = Math.floor(Math.random() * 6)
       const { data, error: createError } = await supabase
         .from('User')
         .insert({
-          telegramId: telegramId || null,
+          telegramId: String(telegramId),
           nickname,
-          playerId,
+          playerId: playerId || String(telegramId),
           avatarIndex,
         })
         .select()
@@ -114,5 +83,53 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[users POST] Fatal error:', error)
     return NextResponse.json({ error: 'Failed to create user', details: String(error) }, { status: 500 })
+  }
+}
+
+export async function GET(request: Request) {
+  if (!supabase) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+  }
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const playerId = searchParams.get('playerId')
+    const telegramId = searchParams.get('telegramId')
+
+    if (telegramId) {
+      const { data: user, error } = await supabase
+        .from('User')
+        .select('*')
+        .eq('telegramId', telegramId)
+        .maybeSingle()
+
+      if (error) throw error
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json(user)
+    }
+
+    if (playerId) {
+      const { data: user, error } = await supabase
+        .from('User')
+        .select('*')
+        .eq('playerId', playerId)
+        .maybeSingle()
+
+      if (error) throw error
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json(user)
+    }
+
+    const { data: users, error } = await supabase
+      .from('User')
+      .select('id, playerId, nickname, avatarIndex, helpersGiven, helpersReceived')
+      .order('createdAt', { ascending: false })
+      .limit(50)
+
+    if (error) throw error
+    return NextResponse.json(users || [])
+  } catch (error) {
+    console.error('[users GET] Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
   }
 }
