@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sfl-cheer-manager-v2",
+  "compatibility_date": "2026-04-08",
+  "main": ".open-next/worker.js",
+  "observability": {
+    "enabled": true
+  },
+  "compatibility_flags": ["nodejs_compat"]
+}
