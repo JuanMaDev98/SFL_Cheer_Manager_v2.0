@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 import { getTelegramUser, readyTelegramApp } from '@/lib/telegram'
-import { validate } from '@telegram-apps/sdk'
 
 interface TelegramUser {
   id: number
@@ -41,19 +40,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
       setTelegramUser(tgUser)
 
       try {
-        // Try to validate with SDK first (client-side)
-        let isValid = false
-        try {
-          // @ts-ignore - Telegram WebApp global
-          const tg = window.Telegram?.WebApp
-          if (tg?.initData) {
-            isValid = await validate(tg.initData, process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || '')
-          }
-        } catch {
-          // SDK validation failed, continue anyway
-          isValid = true // Assume valid for now
-        }
-
         // Check subscription status
         const res = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
         const data = await res.json()
