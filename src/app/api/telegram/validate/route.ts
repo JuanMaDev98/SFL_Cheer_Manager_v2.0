@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { validateInitData, checkUserSubscriptions, type TelegramUser } from '@/lib/telegram-server'
+import { validateInitData, checkUserSubscriptions } from '@/lib/telegram-server'
 
 export async function POST(request: Request) {
   try {
@@ -9,8 +9,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ valid: false, error: 'No initData provided' }, { status: 400 })
     }
 
-    // Validate initData signature
-    const user = await validateInitData(initData)
+    // Validate initData signature (sync function)
+    const user = validateInitData(initData)
 
     if (!user) {
       return NextResponse.json({ valid: false, error: 'Invalid initData' }, { status: 401 })

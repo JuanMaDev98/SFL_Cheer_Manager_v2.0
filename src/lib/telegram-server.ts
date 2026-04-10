@@ -1,4 +1,4 @@
-// Server-side Telegram utilities (no client library needed - uses Bot API directly)
+import crypto from 'crypto'
 
 export interface TelegramUser {
   id: number
@@ -16,9 +16,10 @@ export const MANDATORY_CHATS = [
 ]
 
 // Validate initData from Telegram Mini App
-export async function validateInitData(initData: string): Promise<TelegramUser | null> {
+// https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+export function validateInitData(initData: string): TelegramUser | null {
   if (!BOT_TOKEN) {
-    console.error('[Telegram] BOT_TOKEN not configured in environment')
+    console.error('[Telegram] BOT_TOKEN not configured')
     return null
   }
 
@@ -30,56 +31,41 @@ export async function validateInitData(initData: string): Promise<TelegramUser |
       return null
     }
 
+    // Remove hash from params for data check string
     params.delete('hash')
 
-    const secretKey = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode('WebAppData'),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
-
-    const botTokenKey = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(BOT_TOKEN),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
-
-    const sortedParams = Array.from(params.entries())
+    // Step 1: Sort params alphabetically by key
+    const sortedEntries = Array.from(params.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => `${key}=${value}`)
+
+    // Step 2: Build data_check_string = "key1=value1\nkey2=value2\n..."
+    const dataCheckString = sortedEntries
+      .map(([key, value]) => `${key}=${decodeURIComponent(value)}`)
       .join('\n')
 
-    const dataToCheck = new TextEncoder().encode(sortedParams)
-    const dataCheckBuffer = await crypto.subtle.sign('HMAC', botTokenKey, dataToCheck)
+    console.log('[Telegram] dataCheckString sample:', dataCheckString.substring(0, 100))
 
-    const finalKey = await crypto.subtle.importKey(
-      'raw',
-      new Uint8Array(dataCheckBuffer),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
+    // Step 3: Compute secret_key = HMAC_SHA256("WebAppData", bot_token)
+    const secretKey = crypto
+      .createHmac('sha256', 'WebAppData')
+      .update(BOT_TOKEN)
+      .digest()
 
-    const finalCheck = await crypto.subtle.sign(
-      'HMAC',
-      secretKey,
-      new TextEncoder().encode(sortedParams)
-    )
+    // Step 4: Compute data_check_hash = HMAC_SHA256(secret_key, data_check_string)
+    const dataCheckHash = crypto
+      .createHmac('sha256', secretKey)
+      .update(dataCheckString, 'utf8')
+      .digest('base64')
 
-    const finalBase64 = btoa(String.fromCharCode(...new Uint8Array(finalCheck)))
+    console.log('[Telegram] Computed hash:', dataCheckHash)
+    console.log('[Telegram] Received hash:', hash)
 
-    if (finalBase64 !== hash) {
+    if (dataCheckHash !== hash) {
       console.error('[Telegram] Hash mismatch')
-      console.error('[Telegram] Expected:', finalBase64.substring(0, 20) + '...')
-      console.error('[Telegram] Got:', hash.substring(0, 20) + '...')
       return null
     }
 
-    // Check if not too old (initData expires after 24h)
+    // Step 5: Check auth_date is not older than 24h
     const authDate = parseInt(params.get('auth_date') || '0')
     const now = Math.floor(Date.now() / 1000)
     if (now - authDate > 86400) {
@@ -100,7 +86,6 @@ export async function validateInitData(initData: string): Promise<TelegramUser |
   }
 }
 
-// Check if user is member of a chat via Bot API
 export async function checkMembership(
   userId: number,
   chatUsername: string
@@ -138,7 +123,6 @@ export async function checkMembership(
   }
 }
 
-// Check all mandatory subscriptions
 export async function checkUserSubscriptions(user: TelegramUser) {
   const subscriptions = await Promise.all(
     MANDATORY_CHATS.map(async (chat) => {
