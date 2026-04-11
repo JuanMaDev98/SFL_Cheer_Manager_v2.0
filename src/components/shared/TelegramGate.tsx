@@ -141,21 +141,24 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
   }
 
 
-  if (notInTelegram) {
+  // User has logged out previously — show session closed screen
+  if (needsLogout) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-50 p-6 text-center">
-        <div className="text-5xl mb-4">🔒</div>
-        <h2 className="text-xl font-bold text-green-900 mb-2">Abrí desde Telegram</h2>
-        <p className="text-green-600 text-sm">
-          Esta app solo funciona dentro de Telegram.
-          <br />
-          Abrila desde el bot para continuar.
+        <div className="text-5xl mb-4">👋</div>
+        <h2 className="text-xl font-bold text-green-900 mb-2">Sesión cerrada</h2>
+        <p className="text-green-600 text-sm mb-6">
+          Has cerrado sesión. Si querés entrar con la misma cuenta de Telegram,
+          tocá abajo. Para cambiar de cuenta, primero cambiá en Telegram.
         </p>
         <button
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl font-medium"
+          onClick={() => {
+            setNeedsLogout(false)
+            window.location.reload()
+          }}
+          className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-xl shadow-lg"
         >
-          Recargar
+          ✓ Volver a entrar
         </button>
       </div>
     )
