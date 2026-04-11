@@ -12,7 +12,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import HelperCounter from '@/components/shared/HelperCounter'
-import { categoryConfig } from '@/components/shared/PostCard'
+import { categoryConfig } from '@/lib/categoryConfig'
 import type { Lang } from '@/lib/i18n'
 
 const CATEGORIES = Object.entries(categoryConfig).map(([key, val]) => ({ key, emoji: val.emoji, labelKey: val.labelKey, secondEmoji: val.secondEmoji, disabled: key === 'flower-x-help' }))

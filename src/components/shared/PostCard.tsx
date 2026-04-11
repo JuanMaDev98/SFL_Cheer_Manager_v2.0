@@ -9,15 +9,8 @@ import { useAppStore, type FarmPost } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from './BumpkinAvatar'
 import HelperCounter from './HelperCounter'
+import { categoryConfig } from '@/lib/categoryConfig'
 import type { Lang } from '@/lib/i18n'
-
-// Shared category config - import this in CreatePostScreen and other components
-export const categoryConfig: Record<string, { emoji: string; badgeClass: string; labelKey: string; secondEmoji?: string }> = {
-  'help-x-help': { emoji: '🤝', badgeClass: 'bg-blue-100 text-blue-700', labelKey: 'create.help-x-help', secondEmoji: '🤝' },
-  'cheer-x-cheer': { emoji: '🎉', badgeClass: 'bg-purple-100 text-purple-700', labelKey: 'create.cheer-x-cheer', secondEmoji: '🎉' },
-  'help-and-cheer': { emoji: '🤝', badgeClass: 'bg-orange-100 text-orange-700', labelKey: 'create.help-and-cheer', secondEmoji: '🎉' },
-  'flower-x-help': { emoji: '🌻', badgeClass: 'bg-yellow-100 text-yellow-700', labelKey: 'create.flower-x-help', secondEmoji: '🤝' },
-}
 
 function timeAgo(dateStr: string, lang: Lang): string {
   const now = Date.now()
@@ -28,13 +21,6 @@ function timeAgo(dateStr: string, lang: Lang): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`
   return `${Math.floor(diff / 86400)}d`
-}
-
-const categoryConfig: Record<string, { emoji: string; badgeClass: string; labelKey: string; secondEmoji?: string }> = {
-  'help-x-help': { emoji: '🤝', badgeClass: 'bg-blue-100 text-blue-700', labelKey: 'create.help-x-help', secondEmoji: '🤝' },
-  'cheer-x-cheer': { emoji: '🎉', badgeClass: 'bg-purple-100 text-purple-700', labelKey: 'create.cheer-x-cheer', secondEmoji: '🎉' },
-  'help-and-cheer': { emoji: '🤝', badgeClass: 'bg-orange-100 text-orange-700', labelKey: 'create.help-and-cheer', secondEmoji: '🎉' },
-  'flower-x-help': { emoji: '🌻', badgeClass: 'bg-yellow-100 text-yellow-700', labelKey: 'create.flower-x-help', secondEmoji: '🤝' },
 }
 
 interface PostCardProps {
