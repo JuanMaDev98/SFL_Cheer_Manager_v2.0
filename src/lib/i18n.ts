@@ -57,16 +57,15 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Create Post
     'create.title': 'Crear Post de Ayuda',
-    'create.farm-id': 'ID de tu Granja',
     'create.post-title': 'Título del Post',
     'create.message': 'Mensaje / Descripción',
     'create.category': 'Categoría',
     'create.helpers-needed': 'Helpers necesarios',
     'create.submit': 'Publicar Post',
-    'create.cleaning': '🧹 Limpieza de Farm',
-    'create.cooking': '🍲 Cooking Pot / Rifa',
-    'create.monument': '⚡ Monumento / Buff',
-    'create.fruit': '💚 Fruta Gigante / Love Charms',
+    'create.help-x-help': 'Help X Help',
+    'create.cheer-x-cheer': 'Cheer X Cheer',
+    'create.help-and-cheer': 'Help & Cheer',
+    'create.flower-x-help': 'Flower X Help',
 
     // My Posts
     'myposts.title': 'Mis Posts',
@@ -161,16 +160,15 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Create Post
     'create.title': 'Create Help Post',
-    'create.farm-id': 'Your Farm ID',
     'create.post-title': 'Post Title',
     'create.message': 'Message / Description',
     'create.category': 'Category',
     'create.helpers-needed': 'Helpers needed',
     'create.submit': 'Publish Post',
-    'create.cleaning': '🧹 Farm Cleaning',
-    'create.cooking': '🍲 Cooking Pot / Raffle',
-    'create.monument': '⚡ Monument / Buff',
-    'create.fruit': '💚 Giant Fruit / Love Charms',
+    'create.help-x-help': 'Help X Help',
+    'create.cheer-x-cheer': 'Cheer X Cheer',
+    'create.help-and-cheer': 'Help & Cheer',
+    'create.flower-x-help': 'Flower X Help',
 
     // My Posts
     'myposts.title': 'My Posts',

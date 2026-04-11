@@ -15,30 +15,34 @@ import HelperCounter from '@/components/shared/HelperCounter'
 import type { Lang } from '@/lib/i18n'
 
 const CATEGORIES = [
-  { key: 'cleaning', emoji: '🧹', labelKey: 'create.cleaning' },
-  { key: 'cooking', emoji: '🍲', labelKey: 'create.cooking' },
-  { key: 'monument', emoji: '⚡', labelKey: 'create.monument' },
-  { key: 'fruit', emoji: '💚', labelKey: 'create.fruit' },
+  { key: 'help-x-help', emoji: '🤝', labelKey: 'create.help-x-help' },
+  { key: 'cheer-x-cheer', emoji: '🎉', labelKey: 'create.cheer-x-cheer' },
+  { key: 'help-and-cheer', emoji: '💪', labelKey: 'create.help-and-cheer' },
+  { key: 'flower-x-help', emoji: '🌻', labelKey: 'create.flower-x-help', disabled: true },
 ]
 
 export default function CreatePostScreen() {
   const { lang, user, setScreen, addPost, setShowConfetti, setLoading, isLoading } = useAppStore()
-  const [farmId, setFarmId] = useState('')
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
-  const [category, setCategory] = useState('cleaning')
-  const [helpersNeeded, setHelpersNeeded] = useState(10)
+  const [category, setCategory] = useState('help-x-help')
+  const [helpersNeeded, setHelpersNeeded] = useState(1)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
   }
 
+  const showComingSoon = () => {
+    haptic([50, 50, 50])
+    const msg = lang === 'es' ? '¡Muy pronto! 🌻' : 'Coming soon! 🌻'
+    // Simple toast via alert for now — replace with your toast lib if needed
+    window.alert(msg)
+  }
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {}
-    if (!farmId.trim()) errs.farmId = lang === 'es' ? 'ID de granja requerido' : 'Farm ID required'
     if (!title.trim() || title.length < 5) errs.title = lang === 'es' ? 'Mínimo 5 caracteres' : 'Min 5 characters'
-    if (!message.trim() || message.length < 10) errs.message = lang === 'es' ? 'Mínimo 10 caracteres' : 'Min 10 characters'
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -60,7 +64,7 @@ export default function CreatePostScreen() {
         body: JSON.stringify({
           title: title.trim(),
           message: message.trim(),
-          farmId: farmId.trim(),
+          farmId: user.playerId,
           category,
           helpersNeeded,
           ownerId: user.id,
@@ -114,23 +118,6 @@ export default function CreatePostScreen() {
           onSubmit={handleSubmit}
           className="max-w-md mx-auto px-4 py-5 flex flex-col gap-5"
         >
-          {/* Farm ID */}
-          <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-green-800">
-              {t('create.farm-id', lang as Lang)}
-            </Label>
-            <Input
-              value={farmId}
-              onChange={(e) => setFarmId(e.target.value)}
-              placeholder="#789"
-              className={`rounded-xl border-green-200 bg-white/90 focus:border-green-400 h-11 ${errors.farmId ? 'border-red-300' : ''}`}
-              maxLength={20}
-            />
-            {errors.farmId && (
-              <p className="text-xs text-red-500">{errors.farmId}</p>
-            )}
-          </div>
-
           {/* Title */}
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold text-green-800">
@@ -148,23 +135,25 @@ export default function CreatePostScreen() {
             )}
           </div>
 
-          {/* Message */}
+          {/* Message — now optional */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-green-800">
-              {t('create.message', lang as Lang)}
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold text-green-800">
+                {t('create.message', lang as Lang)}
+              </Label>
+              <span className="text-[10px] text-green-400">
+                {lang === 'es' ? 'Opcional' : 'Optional'}
+              </span>
+            </div>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={lang === 'es' ? 'Describe qué necesitas y ofrece reciprocidad...' : 'Describe what you need and offer reciprocity...'}
-              className={`w-full min-h-[100px] rounded-xl border ${errors.message ? 'border-red-300' : 'border-green-200'} bg-white/90 focus:border-green-400 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 resize-none`}
+              className="w-full min-h-[100px] rounded-xl border border-green-200 bg-white/90 focus:border-green-400 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 resize-none"
               maxLength={300}
             />
-            <div className="flex justify-between">
-              {errors.message && (
-                <p className="text-xs text-red-500">{errors.message}</p>
-              )}
-              <p className="text-[10px] text-green-400 ml-auto">{message.length}/300</p>
+            <div className="flex justify-end">
+              <p className="text-[10px] text-green-400">{message.length}/300</p>
             </div>
           </div>
 
@@ -174,26 +163,32 @@ export default function CreatePostScreen() {
               {t('create.category', lang as Lang)}
             </Label>
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map(({ key, emoji, labelKey }) => (
+              {CATEGORIES.map(({ key, emoji, labelKey, disabled }) => (
                 <motion.button
                   key={key}
                   type="button"
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={disabled ? {} : { scale: 0.95 }}
                   onClick={() => {
+                    if (disabled) {
+                      showComingSoon()
+                      return
+                    }
                     haptic([20])
                     setCategory(key)
                   }}
                   className={`
                     flex items-center gap-2 px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 border
-                    ${category === key
-                      ? 'bg-green-600 text-white border-green-600 shadow-md'
-                      : 'bg-white/90 text-green-700 border-green-200 hover:border-green-400'
+                    ${disabled
+                      ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
+                      : category === key
+                        ? 'bg-green-600 text-white border-green-600 shadow-md'
+                        : 'bg-white/90 text-green-700 border-green-200 hover:border-green-400'
                     }
                   `}
                 >
                   <span className="text-lg">{emoji}</span>
-                  <span className="text-xs leading-tight">
-                    {t(labelKey, lang as Lang).split(' ').slice(1).join(' ')}
+                  <span className="text-xs leading-tight text-left flex-1">
+                    {t(labelKey, lang as Lang)}
                   </span>
                 </motion.button>
               ))}
@@ -232,7 +227,7 @@ export default function CreatePostScreen() {
                     <BumpkinAvatar avatarIndex={user?.avatarIndex || 0} size="sm" />
                     <div>
                       <p className="text-sm font-bold text-green-900">{user?.nickname || 'Tu Nick'}</p>
-                      <p className="text-[10px] text-green-600">{t('general.farm', lang as Lang)} #{farmId || '...'}</p>
+                      <p className="text-[10px] text-green-600">{t('general.farm', lang as Lang)} #{user?.playerId || '...'}</p>
                     </div>
                   </div>
                   <HelperCounter helpersCount={0} helpersNeeded={helpersNeeded} size="sm" showLabel={false} />
@@ -241,13 +236,18 @@ export default function CreatePostScreen() {
                   <p className="text-sm font-bold text-green-900">
                     {title || (lang === 'es' ? 'Título del post...' : 'Post title...')}
                   </p>
-                  <p className="text-xs text-green-700/70 mt-0.5 line-clamp-2">
-                    {message || (lang === 'es' ? 'Descripción...' : 'Description...')}
-                  </p>
+                  {message ? (
+                    <p className="text-xs text-green-700/70 mt-0.5 line-clamp-2">{message}</p>
+                  ) : null}
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full badge-cleaning">
-                    {CATEGORIES.find(c => c.key === category)?.emoji} {t(CATEGORIES.find(c => c.key === category)?.labelKey || 'create.cleaning', lang as Lang).split(' ').slice(1).join(' ')}
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    category === 'flower-x-help'
+                      ? 'bg-gray-100 text-gray-400'
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    {CATEGORIES.find(c => c.key === category)?.emoji}{' '}
+                    {t(CATEGORIES.find(c => c.key === category)?.labelKey || 'create.help-x-help', lang as Lang)}
                   </span>
                 </div>
               </CardContent>
