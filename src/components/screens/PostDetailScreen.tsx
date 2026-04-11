@@ -168,10 +168,12 @@ export default function PostDetailScreen() {
   }
 
   // Handle delete
+  const isOwner = currentPost?.ownerId === user?.id
+
   const handleDelete = async () => {
     if (!post) return
     try {
-      await fetch(`/api/posts/${post.id}`, { method: 'DELETE' })
+      await fetch(`/api/posts/${post.id}?userId=${user?.id}`, { method: 'DELETE' })
       removePost(post.id)
       setShowDeleteDialog(false)
       goBack()
@@ -185,7 +187,7 @@ export default function PostDetailScreen() {
       const res = await fetch(`/api/posts/${post.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ helpersNeeded: newHelpersNeeded }),
+        body: JSON.stringify({ userId: user.id, helpersNeeded: newHelpersNeeded }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -202,7 +204,7 @@ export default function PostDetailScreen() {
       const res = await fetch(`/api/posts/${post.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: editMessage.trim() }),
+        body: JSON.stringify({ userId: user.id, message: editMessage.trim() }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -390,33 +392,37 @@ export default function PostDetailScreen() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleUpdateHelpers}
-                        className="rounded-xl bg-yellow-500 hover:bg-yellow-600 text-yellow-900 text-xs font-bold"
-                      >
-                        {t('detail.update', lang as Lang)}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setEditMessage(post.message)
-                          setShowEditDialog(true)
-                        }}
-                        variant="outline"
-                        className="rounded-xl border-yellow-300 text-yellow-700 text-xs font-bold"
-                      >
-                        {t('detail.edit-msg', lang as Lang)}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowDeleteDialog(true)}
-                        variant="outline"
-                        className="rounded-xl border-red-300 text-red-600 text-xs font-bold ml-auto"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        {t('detail.remove', lang as Lang)}
-                      </Button>
+                      {isOwner && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={handleUpdateHelpers}
+                            className="rounded-xl bg-yellow-500 hover:bg-yellow-600 text-yellow-900 text-xs font-bold"
+                          >
+                            {t('detail.update', lang as Lang)}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setEditMessage(post.message)
+                              setShowEditDialog(true)
+                            }}
+                            variant="outline"
+                            className="rounded-xl border-yellow-300 text-yellow-700 text-xs font-bold"
+                          >
+                            {t('detail.edit-msg', lang as Lang)}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => setShowDeleteDialog(true)}
+                            variant="outline"
+                            className="rounded-xl border-red-300 text-red-600 text-xs font-bold ml-auto"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            {t('detail.remove', lang as Lang)}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

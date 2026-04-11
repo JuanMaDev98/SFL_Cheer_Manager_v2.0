@@ -51,7 +51,7 @@ export default function MyPostsScreen() {
     if (!deleteId) return
     haptic([50])
     try {
-      await fetch(`/api/posts/${deleteId}`, { method: 'DELETE' })
+      await fetch(`/api/posts/${deleteId}?userId=${user?.id}`, { method: 'DELETE' })
       removePost(deleteId)
       setPosts((prev) => prev.filter((p) => p.id !== deleteId))
     } catch {}
@@ -158,7 +158,7 @@ export default function MyPostsScreen() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <BumpkinAvatar avatarIndex={user?.avatarIndex || 0} size="sm" />
+                              <BumpkinAvatar avatarIndex={post.owner?.avatarIndex || 0} size="sm" />
                               <div className="min-w-0">
                                 <p className="text-sm font-bold text-green-900 truncate">{post.title}</p>
                                 <p className="text-[10px] text-green-600">
