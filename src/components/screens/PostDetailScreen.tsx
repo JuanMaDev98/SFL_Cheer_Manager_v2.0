@@ -167,9 +167,6 @@ export default function PostDetailScreen() {
     }
   }
 
-  // Handle delete
-  const isOwner = currentPost?.ownerId === user?.id
-
   const handleDelete = async () => {
     if (!post) return
     try {
