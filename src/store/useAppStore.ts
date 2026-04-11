@@ -175,7 +175,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'sfl-storage',
-      partialize: (state) => ({ needsLogout: state.needsLogout }),
+      partialize: (state) => ({ needsLogout: state.needsLogout, screen: state.screen }),
     }
   )
 )
