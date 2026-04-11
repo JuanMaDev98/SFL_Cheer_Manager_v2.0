@@ -17,51 +17,44 @@ import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 const NAV_SCREENS = ['feed', 'my-posts', 'profile', 'post-detail'] as const
 
 export default function SunflowerApp() {
-  const { screen, user, showConfetti, setShowConfetti, setUser, setTelegramLinked, setScreen, needsLogout } = useAppStore()
+  const { screen, user, showConfetti, setShowConfetti, setUser, setScreen, needsLogout } = useAppStore()
   const [isRestoring, setIsRestoring] = useState(true)
 
-  // Restore session on mount
+  // Restore session on mount — fast, no API call
   useEffect(() => {
-    async function restoreSession() {
-      // If needsLogout flag is set, skip auto-login and go to register
-      const store = useAppStore.getState()
-      if (store.needsLogout) {
-        store.setScreen('register')
+    function restore() {
+      // If needsLogout flag is set, go to register
+      if (needsLogout) {
+        setScreen('register')
         setIsRestoring(false)
         return
       }
 
-      try {
-        const saved = localStorage.getItem('sunflower_user')
-        const linked = localStorage.getItem('sunflower_telegram')
-
-        if (saved) {
+      // Try to restore from localStorage
+      const saved = localStorage.getItem('sunflower_user')
+      if (saved) {
+        try {
           const parsed = JSON.parse(saved)
-          if (parsed.playerId) {
-            const res = await fetch(`/api/users?playerId=${parsed.playerId}`)
-            if (res.ok) {
-              const dbUser = await res.json()
-              if (dbUser && dbUser.id) {
-                setUser(parsed)
-                setScreen('feed')
-                if (linked === 'true') setTelegramLinked(true)
-                setIsRestoring(false)
-                return
-              }
-            }
+          if (parsed && parsed.playerId) {
+            setUser(parsed)
+            setScreen('feed')
+            setIsRestoring(false)
+            return
           }
+        } catch {
+          // corrupted data, ignore
         }
-      } catch {
-        // ignore
       }
 
-      // No valid session
+      // No session — go to register
       setScreen('register')
       setIsRestoring(false)
     }
 
-    restoreSession()
-  }, [setUser, setTelegramLinked, setScreen])
+    // Small delay to let Zustand persist hydrate
+    const timer = setTimeout(restore, 50)
+    return () => clearTimeout(timer)
+  }, [needsLogout, setUser, setScreen])
 
   // Save user to localStorage when it changes
   useEffect(() => {
