@@ -48,6 +48,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Check if user already has an active post in this category
+    const { data: existingPost, error: checkError } = await supabase
+      .from('FarmPost')
+      .select('id, category')
+      .eq('ownerId', ownerId)
+      .eq('category', category)
+      .eq('isActive', true)
+      .maybeSingle()
+
+    if (checkError) throw checkError
+    if (existingPost) {
+      return NextResponse.json(
+        { error: 'Ya tienes un post activo en esta categoría' },
+        { status: 409 }
+      )
+    }
+
     const { data: post, error } = await supabase
       .from('FarmPost')
       .insert({

@@ -80,9 +80,14 @@ export default function CreatePostScreen() {
 
       addPost(post)
       setScreen('feed')
-    } catch {
+    } catch (err: any) {
       haptic([100])
-      setErrors({ title: t('general.error', lang as Lang) })
+      const msg = err?.message || err?.error || t('general.error', lang as Lang)
+      if (msg.includes('409') || msg.includes('Ya tienes')) {
+        setErrors({ title: lang === 'es' ? 'Ya tienes un post en esta categoría' : 'You already have a post in this category' })
+      } else {
+        setErrors({ title: msg })
+      }
     } finally {
       setLoading(false)
     }
