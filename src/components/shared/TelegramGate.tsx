@@ -28,15 +28,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function init() {
-      // Check if user previously logged out — respect that decision
-      if (needsLogout) {
-        console.log('[TelegramGate] User previously logged out, showing login screen')
-        setNotInTelegram(true)
-        setReady(true)
-        return
-      }
-
-      // Wait for Telegram WebApp to be fully ready
       // @ts-ignore
       const tg = window.Telegram?.WebApp
 
@@ -53,16 +44,24 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
         setTimeout(resolve, 100)
       })
 
-      console.log('[TelegramGate] WebApp ready, initData length:', tg.initData?.length || 0)
-      console.log('[TelegramGate] User:', tg.initDataUnsafe?.user)
+      const tgUser = tg.initDataUnsafe?.user as TelegramUser | undefined
 
-      if (!tg.initDataUnsafe?.user) {
+      console.log('[TelegramGate] WebApp ready, initData length:', tg.initData?.length || 0)
+      console.log('[TelegramGate] User:', tgUser)
+      console.log('[TelegramGate] needsLogout:', needsLogout)
+
+      // If user previously logged out, show logged-out screen instead of re-autenticating
+      if (needsLogout) {
+        setReady(true)
+        return
+      }
+
+      if (!tgUser) {
         setNotInTelegram(true)
         setReady(true)
         return
       }
 
-      const tgUser = tg.initDataUnsafe.user as TelegramUser
       setTelegramUser(tgUser)
 
       try {
@@ -118,6 +117,11 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     setScreen('feed')
   }
 
+  function handleReLogin() {
+    setNeedsLogout(false)
+    setReady(false)
+  }
+
   function openChat(username: string) {
     // @ts-ignore
     const tg = window.Telegram?.WebApp
@@ -128,12 +132,31 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     }
   }
 
-  // Never render error states during initial load
+  // Never render during initial load
   if (!ready) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-50">
         <div className="animate-spin w-10 h-10 border-4 border-green-400 border-t-transparent rounded-full mb-4" />
         <p className="text-green-700 font-medium">Verificando...</p>
+      </div>
+    )
+  }
+
+  // User has previously logged out — show option to re-enter
+  if (needsLogout) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-green-50 p-6 text-center">
+        <div className="text-5xl mb-4">👋</div>
+        <h2 className="text-xl font-bold text-green-900 mb-2">Sesión cerrada</h2>
+        <p className="text-green-600 text-sm mb-6">
+          Has cerrado sesión. Tocá abajo para volver a entrar.
+        </p>
+        <button
+          onClick={handleReLogin}
+          className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-xl shadow-lg"
+        >
+          ✓ Volver a entrar
+        </button>
       </div>
     )
   }
@@ -224,11 +247,10 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
   return <>{children}</>
 }
 
-// Export logout function that can be called from anywhere in the app
+// Call this to log out — persists in localStorage
 export function logout() {
-  const store = useAppStore.getState()
-  store.setUser(null)
-  store.setTelegramUser(null)
-  store.setNeedsLogout(true)
-  store.setScreen('link-telegram')
+  useAppStore.getState().setNeedsLogout(true)
+  useAppStore.getState().setUser(null)
+  useAppStore.getState().setTelegramUser(null)
+  useAppStore.getState().setScreen('link-telegram')
 }
