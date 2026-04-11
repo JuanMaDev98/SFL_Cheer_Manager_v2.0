@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// Telegram bot token for validation
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
-
-// MANDATORY_CHATS constant to match client
-const MANDATORY_CHATS = [
-  { username: 'JuanMaYoutube', type: 'channel' as const, name: 'Canal de JuanMa' },
-  { username: 'MankoGuild', type: 'group' as const, name: 'Manko Guild' },
-]
-
 export async function POST(request: Request) {
   try {
     const { telegramId, nickname, playerId } = await request.json()
@@ -20,16 +11,35 @@ export async function POST(request: Request) {
 
     console.log('[users POST] Input:', { telegramId, nickname, playerId })
 
-    // Find by telegramId (primary) or playerId (fallback)
-    let query = supabase
-      .from('User')
-      .select('*')
-      .eq('telegramId', String(telegramId))
-      .maybeSingle()
+    // Only search by telegramId if it's a valid non-empty string (not undefined/null/"undefined")
+    const isValidTelegramId = telegramId && String(telegramId) !== 'undefined' && String(telegramId).trim() !== ''
 
-    const { data: existingUser, error: findError } = await query
+    let existingUser = null
+    let findError = null
 
-    console.log('[users POST] findExisting result:', { found: !!existingUser, error: findError })
+    // Priority 1: find by valid telegramId
+    if (isValidTelegramId) {
+      const result = await supabase
+        .from('User')
+        .select('*')
+        .eq('telegramId', String(telegramId))
+        .maybeSingle()
+      existingUser = result.data
+      findError = result.error
+      console.log('[users POST] find by telegramId:', !!existingUser)
+    }
+
+    // Priority 2: find by playerId (most reliable identifier from SFL)
+    if (!existingUser && playerId) {
+      const result = await supabase
+        .from('User')
+        .select('*')
+        .eq('playerId', String(playerId))
+        .maybeSingle()
+      existingUser = result.data
+      findError = result.error
+      console.log('[users POST] find by playerId:', !!existingUser)
+    }
 
     if (findError) {
       console.error('[users POST] findError:', findError)
@@ -39,14 +49,20 @@ export async function POST(request: Request) {
     let user
 
     if (existingUser) {
-      // Update user
+      // Update user — preserve original telegramId if new one is invalid
+      const updateData: any = {
+        nickname,
+        playerId: playerId || existingUser.playerId,
+      }
+      // Only update telegramId if we have a valid one
+      if (isValidTelegramId) {
+        updateData.telegramId = String(telegramId)
+      }
+
       const { data, error: updateError } = await supabase
         .from('User')
-        .update({
-          nickname,
-          playerId: playerId || existingUser.playerId,
-        })
-        .eq('telegramId', String(telegramId))
+        .update(updateData)
+        .eq('id', existingUser.id)
         .select()
         .single()
 
@@ -62,9 +78,9 @@ export async function POST(request: Request) {
       const { data, error: createError } = await supabase
         .from('User')
         .insert({
-          telegramId: String(telegramId),
+          telegramId: isValidTelegramId ? String(telegramId) : null,
           nickname,
-          playerId: playerId || String(telegramId),
+          playerId: playerId || (isValidTelegramId ? String(telegramId) : null),
           avatarIndex,
         })
         .select()
@@ -96,7 +112,7 @@ export async function GET(request: Request) {
     const playerId = searchParams.get('playerId')
     const telegramId = searchParams.get('telegramId')
 
-    if (telegramId) {
+    if (telegramId && telegramId !== 'undefined') {
       const { data: user, error } = await supabase
         .from('User')
         .select('*')

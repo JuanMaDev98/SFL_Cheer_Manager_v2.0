@@ -61,11 +61,6 @@ export default function PostDetailScreen() {
 
   const post = currentPost
   const isOwner = post?.ownerId === user?.id
-
-  // DEBUG
-  console.log('[PostDetail] user:', user)
-  console.log('[PostDetail] post:', post)
-  console.log('[PostDetail] isOwner:', isOwner, 'post.ownerId:', post?.ownerId, '=== user.id:', user?.id)
   const hasJoined = post?.helpers?.some((h) => h.userId === user?.id)
   const isFull = post ? post.helpersCount >= post.helpersNeeded : false
   const cat = post ? categoryConfig[post.category] || categoryConfig.cleaning : null
