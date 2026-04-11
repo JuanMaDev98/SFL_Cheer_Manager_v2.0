@@ -187,7 +187,7 @@ export default function CreatePostScreen() {
                   `}
                 >
                   <span className="text-lg">{emoji}</span>
-                  <span className="text-xs leading-tight text-left flex-1">
+                  <span className="text-xs leading-tight text-center flex-1">
                     {t(labelKey, lang as Lang)}
                   </span>
                   <span className="text-lg">{secondEmoji || emoji}</span>
