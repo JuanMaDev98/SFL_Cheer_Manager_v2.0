@@ -163,7 +163,7 @@ export default function CreatePostScreen() {
               {t('create.category', lang as Lang)}
             </Label>
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map(({ key, emoji, labelKey, disabled }) => (
+              {CATEGORIES.map(({ key, emoji, labelKey, disabled, secondEmoji }) => (
                 <motion.button
                   key={key}
                   type="button"
