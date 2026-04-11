@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { title, message, farmId, category, helpersNeeded, ownerId } = body
 
-    if (!title || !message || !farmId || !ownerId) {
+    if (!title || !farmId || !ownerId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 

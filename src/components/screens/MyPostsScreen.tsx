@@ -223,6 +223,16 @@ export default function MyPostsScreen() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* FAB */}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setScreen('create-post')}
+        className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-lg shadow-yellow-400/30 flex items-center justify-center text-green-900 font-bold text-2xl"
+      >
+        +
+      </motion.button>
     </div>
   )
 }
