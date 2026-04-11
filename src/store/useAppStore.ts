@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type Screen = 'link-telegram' | 'register' | 'feed' | 'post-detail' | 'create-post' | 'my-posts' | 'profile'
 export type PostFilter = 'all' | 'urgent' | 'almost-full' | 'cooking'
@@ -76,6 +77,10 @@ interface AppState {
   isTelegramLinked: boolean
   setTelegramLinked: (linked: boolean) => void
 
+  // Logout persistence — stored in localStorage so it survives page reloads
+  needsLogout: boolean
+  setNeedsLogout: (v: boolean) => void
+
   // Posts
   posts: FarmPost[]
   currentPost: FarmPost | null
@@ -109,62 +114,68 @@ interface AppState {
   setTotalPosts: (total: number) => void
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
-  // Navigation
-  screen: 'link-telegram',
-  previousScreen: null,
-  setScreen: (screen) => set({ previousScreen: get().screen, screen }),
-  goBack: () => {
-    const prev = get().previousScreen
-    if (prev) set({ screen: prev, previousScreen: null })
-    else set({ screen: 'feed' })
-  },
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      // Navigation
+      screen: 'link-telegram',
+      previousScreen: null,
+      setScreen: (screen) => set({ previousScreen: get().screen, screen }),
+      goBack: () => {
+        const prev = get().previousScreen
+        if (prev) set({ screen: prev, previousScreen: null })
+        else set({ screen: 'feed' })
+      },
 
-  // User
-  user: null,
-  setUser: (user) => set({ user }),
-  telegramUser: null,
-  setTelegramUser: (user) => set({ telegramUser: user }),
-  isTelegramLinked: false,
-  setTelegramLinked: (linked) => set({ isTelegramLinked: linked }),
-  needsLogout: false,
-  setNeedsLogout: (v) => set({ needsLogout: v }),
-  needsLogout: boolean,
-  setNeedsLogout: (v: boolean) => void,
+      // User
+      user: null,
+      setUser: (user) => set({ user }),
+      telegramUser: null,
+      setTelegramUser: (user) => set({ telegramUser: user }),
+      isTelegramLinked: false,
+      setTelegramLinked: (linked) => set({ isTelegramLinked: linked }),
+      needsLogout: false,
+      setNeedsLogout: (v) => set({ needsLogout: v }),
 
-  // Posts
-  posts: [],
-  currentPost: null,
-  filter: 'all',
-  setPosts: (posts) => set({ posts }),
-  setCurrentPost: (post) => set({ currentPost: post }),
-  setFilter: (filter) => set({ filter }),
-  addPost: (post) => set((s) => ({ posts: [post, ...s.posts] })),
-  removePost: (id) => set((s) => ({ posts: s.posts.filter((p) => p.id !== id) })),
-  updatePost: (id, data) =>
-    set((s) => ({
-      posts: s.posts.map((p) => (p.id === id ? { ...p, ...data } : p)),
-      currentPost: s.currentPost?.id === id ? { ...s.currentPost, ...data } : s.currentPost,
-    })),
+      // Posts
+      posts: [],
+      currentPost: null,
+      filter: 'all',
+      setPosts: (posts) => set({ posts }),
+      setCurrentPost: (post) => set({ currentPost: post }),
+      setFilter: (filter) => set({ filter }),
+      addPost: (post) => set((s) => ({ posts: [post, ...s.posts] })),
+      removePost: (id) => set((s) => ({ posts: s.posts.filter((p) => p.id !== id) })),
+      updatePost: (id, data) =>
+        set((s) => ({
+          posts: s.posts.map((p) => (p.id === id ? { ...p, ...data } : p)),
+          currentPost: s.currentPost?.id === id ? { ...s.currentPost, ...data } : s.currentPost,
+        })),
 
-  // Chat
-  messages: [],
-  setMessages: (messages) => set({ messages }),
-  addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
+      // Chat
+      messages: [],
+      setMessages: (messages) => set({ messages }),
+      addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
 
-  // UI State
-  isLoading: false,
-  error: null,
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
-  showConfetti: false,
-  setShowConfetti: (show) => set({ showConfetti: show }),
+      // UI State
+      isLoading: false,
+      error: null,
+      setLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+      showConfetti: false,
+      setShowConfetti: (show) => set({ showConfetti: show }),
 
-  // Language
-  lang: 'es',
-  setLang: (lang) => set({ lang }),
+      // Language
+      lang: 'es',
+      setLang: (lang) => set({ lang }),
 
-  // Total count
-  totalPosts: 0,
-  setTotalPosts: (total) => set({ totalPosts: total }),
-}))
+      // Total count
+      totalPosts: 0,
+      setTotalPosts: (total) => set({ totalPosts: total }),
+    }),
+    {
+      name: 'sfl-storage',
+      partialize: (state) => ({ needsLogout: state.needsLogout }),
+    }
+  )
+)
