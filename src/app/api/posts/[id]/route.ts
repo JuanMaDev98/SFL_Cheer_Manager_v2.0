@@ -10,6 +10,8 @@ export async function PUT(
     const body = await request.json()
     const { userId, ...updateData } = body
 
+    console.log('[PUT /api/posts/:id] userId:', userId, 'postId:', id)
+
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 401 })
     }
@@ -17,12 +19,17 @@ export async function PUT(
     // Verify ownership
     const { data: post } = await supabase
       .from('FarmPost')
-      .select('ownerId')
+      .select('id, ownerId')
       .eq('id', id)
       .single()
 
+    console.log('[PUT /api/posts/:id] post from DB:', post)
+
     if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
-    if (post.ownerId !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (post.ownerId !== userId) {
+      console.log('[PUT /api/posts/:id] FORBIDDEN - post.ownerId:', post.ownerId, '!== userId:', userId)
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const { data: updated, error } = await supabase
       .from('FarmPost')
@@ -48,6 +55,8 @@ export async function DELETE(
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
+    console.log('[DELETE /api/posts/:id] userId:', userId, 'postId:', id)
+
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 401 })
     }
@@ -55,12 +64,17 @@ export async function DELETE(
     // Verify ownership
     const { data: post } = await supabase
       .from('FarmPost')
-      .select('ownerId')
+      .select('id, ownerId')
       .eq('id', id)
       .single()
 
+    console.log('[DELETE /api/posts/:id] post from DB:', post)
+
     if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
-    if (post.ownerId !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (post.ownerId !== userId) {
+      console.log('[DELETE /api/posts/:id] FORBIDDEN - post.ownerId:', post.ownerId, '!== userId:', userId)
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Delete in order: messages, joins, then post
     await supabase.from('ChatMessage').delete().eq('postId', id)
