@@ -50,8 +50,10 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
       console.log('[TelegramGate] User:', tgUser)
       console.log('[TelegramGate] needsLogout:', needsLogout)
 
-      // If user previously logged out, show logged-out screen instead of re-autenticating
+      // If user previously logged out, show login screen (notInTelegram=true)
+      // so they can re-authenticate with same or another Telegram account
       if (needsLogout) {
+        setNotInTelegram(true)
         setReady(true)
         return
       }
@@ -117,10 +119,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     setScreen('feed')
   }
 
-  function handleReLogin() {
-    setNeedsLogout(false)
-    setReady(false)
-  }
 
   function openChat(username: string) {
     // @ts-ignore
@@ -142,24 +140,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     )
   }
 
-  // User has previously logged out — show option to re-enter
-  if (needsLogout) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-green-50 p-6 text-center">
-        <div className="text-5xl mb-4">👋</div>
-        <h2 className="text-xl font-bold text-green-900 mb-2">Sesión cerrada</h2>
-        <p className="text-green-600 text-sm mb-6">
-          Has cerrado sesión. Tocá abajo para volver a entrar.
-        </p>
-        <button
-          onClick={handleReLogin}
-          className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-xl shadow-lg"
-        >
-          ✓ Volver a entrar
-        </button>
-      </div>
-    )
-  }
 
   if (notInTelegram) {
     return (
