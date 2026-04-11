@@ -17,51 +17,12 @@ import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 const NAV_SCREENS = ['feed', 'my-posts', 'profile', 'post-detail'] as const
 
 export default function SunflowerApp() {
-  const { screen, user, showConfetti, setShowConfetti, setUser, setScreen, needsLogout } = useAppStore()
-  const [isRestoring, setIsRestoring] = useState(true)
+  const { screen, showConfetti, setShowConfetti } = useAppStore()
+  const [mounted, setMounted] = useState(false)
 
-  // Restore session on mount — fast, no API call
   useEffect(() => {
-    function restore() {
-      // If needsLogout flag is set, go to register
-      if (needsLogout) {
-        setScreen('register')
-        setIsRestoring(false)
-        return
-      }
-
-      // Try to restore from localStorage
-      const saved = localStorage.getItem('sunflower_user')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          if (parsed && parsed.playerId) {
-            setUser(parsed)
-            setScreen('feed')
-            setIsRestoring(false)
-            return
-          }
-        } catch {
-          // corrupted data, ignore
-        }
-      }
-
-      // No session — go to register
-      setScreen('register')
-      setIsRestoring(false)
-    }
-
-    // Small delay to let Zustand persist hydrate
-    const timer = setTimeout(restore, 50)
-    return () => clearTimeout(timer)
-  }, [needsLogout, setUser, setScreen])
-
-  // Save user to localStorage when it changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('sunflower_user', JSON.stringify(user))
-    }
-  }, [user])
+    setMounted(true)
+  }, [])
 
   const showNav = NAV_SCREENS.includes(screen as any)
 
@@ -86,7 +47,8 @@ export default function SunflowerApp() {
     }
   }
 
-  if (isRestoring) {
+  // Show spinner only on first mount before hydration
+  if (!mounted) {
     return (
       <FarmBackground>
         <div className="flex items-center justify-center min-h-screen">
@@ -99,9 +61,7 @@ export default function SunflowerApp() {
   return (
     <FarmBackground>
       {renderScreen()}
-
       {showNav && <BottomNav />}
-
       <ConfettiEffect
         show={showConfetti}
         onComplete={() => setShowConfetti(false)}
