@@ -23,10 +23,10 @@ function timeAgo(dateStr: string, lang: Lang): string {
 }
 
 const categoryConfig: Record<string, { emoji: string; badgeClass: string; labelKey: string }> = {
-  cleaning: { emoji: '🧹', badgeClass: 'badge-cleaning', labelKey: 'create.cleaning' },
-  cooking: { emoji: '🍲', badgeClass: 'badge-cooking', labelKey: 'create.cooking' },
-  monument: { emoji: '⚡', badgeClass: 'badge-monument', labelKey: 'create.monument' },
-  fruit: { emoji: '💚', badgeClass: 'badge-fruit', labelKey: 'create.fruit' },
+  'help-x-help': { emoji: '🤝', badgeClass: 'bg-blue-100 text-blue-700', labelKey: 'create.help-x-help' },
+  'cheer-x-cheer': { emoji: '🎉', badgeClass: 'bg-purple-100 text-purple-700', labelKey: 'create.cheer-x-cheer' },
+  'help-and-cheer': { emoji: '💪', badgeClass: 'bg-orange-100 text-orange-700', labelKey: 'create.help-and-cheer' },
+  'flower-x-help': { emoji: '🌻', badgeClass: 'bg-yellow-100 text-yellow-700', labelKey: 'create.flower-x-help' },
 }
 
 interface PostCardProps {
@@ -86,7 +86,7 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
             {post.title}
           </h3>
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cat.badgeClass}`}>
-            {cat.emoji} {compact ? post.category : t(cat.labelKey, lang as Lang).split(' ').slice(1).join(' ')}
+            {cat.emoji} {compact ? post.category : t(cat.labelKey, lang as Lang)}
           </span>
         </div>
 
