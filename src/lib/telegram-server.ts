@@ -101,7 +101,7 @@ export async function checkMembership(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat: `@${chatUsername}`,
+          chat_id: `@${chatUsername}`,
           user_id: userId,
         }),
       }
