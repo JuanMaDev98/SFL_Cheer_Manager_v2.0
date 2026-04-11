@@ -12,14 +12,10 @@ import { useAppStore } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import HelperCounter from '@/components/shared/HelperCounter'
+import { categoryConfig } from '@/components/shared/PostCard'
 import type { Lang } from '@/lib/i18n'
 
-const CATEGORIES = [
-  { key: 'help-x-help', emoji: '🤝', labelKey: 'create.help-x-help' },
-  { key: 'cheer-x-cheer', emoji: '🎉', labelKey: 'create.cheer-x-cheer' },
-  { key: 'help-and-cheer', emoji: '💪', labelKey: 'create.help-and-cheer' },
-  { key: 'flower-x-help', emoji: '🌻', labelKey: 'create.flower-x-help', disabled: true },
-]
+const CATEGORIES = Object.entries(categoryConfig).map(([key, val]) => ({ key, emoji: val.emoji, labelKey: val.labelKey, secondEmoji: val.secondEmoji, disabled: key === 'flower-x-help' }))
 
 export default function CreatePostScreen() {
   const { lang, user, setScreen, addPost, setShowConfetti, setLoading, isLoading } = useAppStore()
@@ -194,6 +190,7 @@ export default function CreatePostScreen() {
                   <span className="text-xs leading-tight text-left flex-1">
                     {t(labelKey, lang as Lang)}
                   </span>
+                  <span className="text-lg">{secondEmoji || emoji}</span>
                 </motion.button>
               ))}
             </div>
@@ -250,8 +247,10 @@ export default function CreatePostScreen() {
                       ? 'bg-gray-100 text-gray-400'
                       : 'bg-green-100 text-green-700'
                   }`}>
-                    {CATEGORIES.find(c => c.key === category)?.emoji}{' '}
-                    {t(CATEGORIES.find(c => c.key === category)?.labelKey || 'create.help-x-help', lang as Lang)}
+                    {(() => {
+                      const cat = CATEGORIES.find(c => c.key === category)
+                      return `${cat?.emoji || ''} ${t(cat?.labelKey || 'create.help-x-help', lang as Lang)} ${cat?.secondEmoji || cat?.emoji || ''}`
+                    })()}
                   </span>
                 </div>
               </CardContent>
