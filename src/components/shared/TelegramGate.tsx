@@ -20,53 +20,58 @@ interface SubscriptionCheck {
 
 export default function TelegramGate({ children }: { children: React.ReactNode }) {
   const { setUser, setScreen, setTelegramUser } = useAppStore()
-  const [loading, setLoading] = useState(true)
+  const [ready, setReady] = useState(false)
   const [notInTelegram, setNotInTelegram] = useState(false)
   const [needsSubscription, setNeedsSubscription] = useState(false)
   const [subscriptions, setSubscriptions] = useState<SubscriptionCheck[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
-    async function checkTelegram() {
+    async function init() {
+      // Wait for Telegram WebApp to be fully ready
       // @ts-ignore
       const tg = window.Telegram?.WebApp
 
-      // Wait for Telegram WebApp to be fully ready
-      if (tg) {
-        await new Promise<void>(resolve => {
-          if (tg.ready) {
-            tg.ready()
-            tg.expand()
-          }
-          // Give it a moment to populate initData
-          setTimeout(resolve, 300)
-        })
-      }
-
-      // Now get user from initDataUnsafe
-      const tgUser = tg?.initDataUnsafe?.user as TelegramUser | undefined
-      const hasInitData = !!tg?.initData && !!tgUser
-
-      console.log('[TelegramGate] initData present:', !!tg?.initData)
-      console.log('[TelegramGate] user:', tgUser)
-
-      if (!hasInitData) {
-        setNotInTelegram(true)
-        setLoading(false)
+      if (!tg) {
+        // Not in Telegram - might be dev mode, let it pass
+        console.warn('[TelegramGate] No Telegram WebApp detected')
+        setReady(true)
         return
       }
 
+      // onReady is the correct way to wait for Telegram init
+      await new Promise<void>(resolve => {
+        // If already ready, resolve immediately
+        if (tg.ready) {
+          tg.ready()
+        }
+        if (tg.expand) {
+          tg.expand()
+        }
+        // Give it a moment for initData to be populated
+        setTimeout(resolve, 100)
+      })
+
+      console.log('[TelegramGate] WebApp ready, initData length:', tg.initData?.length || 0)
+      console.log('[TelegramGate] User:', tg.initDataUnsafe?.user)
+
+      if (!tg.initDataUnsafe?.user) {
+        setNotInTelegram(true)
+        setReady(true)
+        return
+      }
+
+      const tgUser = tg.initDataUnsafe.user as TelegramUser
       setTelegramUser(tgUser)
 
       try {
-        // Check subscription status
         const res = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
         const data = await res.json()
-        console.log('[TelegramGate] Subscription check:', data)
+        console.log('[TelegramGate] Subscription:', data)
 
         if (!data.subscriptions) {
           setError(data.error || 'Error checking subscriptions')
-          setLoading(false)
+          setReady(true)
           return
         }
 
@@ -74,21 +79,21 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
         if (!data.allPassed) {
           setNeedsSubscription(true)
-          setLoading(false)
+          setReady(true)
           return
         }
 
         // All good — upsert user
         await upsertUser(tgUser)
-        setLoading(false)
+        setReady(true)
       } catch (err) {
         console.error('[TelegramGate] Error:', err)
         setError('Error de conexión. Intentá de nuevo.')
-        setLoading(false)
+        setReady(true)
       }
     }
 
-    checkTelegram()
+    init()
   }, [])
 
   async function upsertUser(tgUser: TelegramUser) {
@@ -123,7 +128,8 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     }
   }
 
-  if (loading) {
+  // Never render error states during initial load — wait for ready
+  if (!ready) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-50">
         <div className="animate-spin w-10 h-10 border-4 border-green-400 border-t-transparent rounded-full mb-4" />
@@ -142,6 +148,12 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
           <br />
           Abrila desde el bot para continuar.
         </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl font-medium"
+        >
+          Recargar
+        </button>
       </div>
     )
   }
@@ -163,7 +175,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
   }
 
   if (needsSubscription) {
-    const missing = subscriptions.filter((s) => !s.isMember)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-50 p-6 text-center">
         <div className="text-5xl mb-4">📢</div>
@@ -186,9 +197,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
               <div className="text-left">
                 <p className="font-bold text-green-800">{sub.name}</p>
                 <p className="text-xs text-green-500">@{sub.chat}</p>
-                {sub.status && (
-                  <p className="text-xs text-gray-400">Status: {sub.status}</p>
-                )}
               </div>
               {sub.isMember ? (
                 <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-lg">✓</span>
