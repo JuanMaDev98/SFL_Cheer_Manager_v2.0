@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAppStore } from '@/store/useAppStore'
+import { logout } from '@/components/shared/TelegramGate'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
@@ -79,9 +80,7 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     haptic([50])
-    setUser(null)
-    setTelegramLinked(false)
-    setScreen('link-telegram')
+    logout()
   }
 
   if (!user) {

@@ -19,7 +19,7 @@ interface SubscriptionCheck {
 }
 
 export default function TelegramGate({ children }: { children: React.ReactNode }) {
-  const { setUser, setScreen, setTelegramUser } = useAppStore()
+  const { setUser, setScreen, setTelegramUser, needsLogout, setNeedsLogout } = useAppStore()
   const [ready, setReady] = useState(false)
   const [notInTelegram, setNotInTelegram] = useState(false)
   const [needsSubscription, setNeedsSubscription] = useState(false)
@@ -28,27 +28,28 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function init() {
+      // Check if user previously logged out — respect that decision
+      if (needsLogout) {
+        console.log('[TelegramGate] User previously logged out, showing login screen')
+        setNotInTelegram(true)
+        setReady(true)
+        return
+      }
+
       // Wait for Telegram WebApp to be fully ready
       // @ts-ignore
       const tg = window.Telegram?.WebApp
 
       if (!tg) {
-        // Not in Telegram - might be dev mode, let it pass
         console.warn('[TelegramGate] No Telegram WebApp detected')
+        setNotInTelegram(true)
         setReady(true)
         return
       }
 
-      // onReady is the correct way to wait for Telegram init
       await new Promise<void>(resolve => {
-        // If already ready, resolve immediately
-        if (tg.ready) {
-          tg.ready()
-        }
-        if (tg.expand) {
-          tg.expand()
-        }
-        // Give it a moment for initData to be populated
+        if (tg.ready) tg.ready()
+        if (tg.expand) tg.expand()
         setTimeout(resolve, 100)
       })
 
@@ -83,7 +84,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
           return
         }
 
-        // All good — upsert user
         await upsertUser(tgUser)
         setReady(true)
       } catch (err) {
@@ -94,7 +94,7 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     }
 
     init()
-  }, [])
+  }, [needsLogout])
 
   async function upsertUser(tgUser: TelegramUser) {
     try {
@@ -128,7 +128,7 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     }
   }
 
-  // Never render error states during initial load — wait for ready
+  // Never render error states during initial load
   if (!ready) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-50">
@@ -222,4 +222,13 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
   }
 
   return <>{children}</>
+}
+
+// Export logout function that can be called from anywhere in the app
+export function logout() {
+  const store = useAppStore.getState()
+  store.setUser(null)
+  store.setTelegramUser(null)
+  store.setNeedsLogout(true)
+  store.setScreen('link-telegram')
 }

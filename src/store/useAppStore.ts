@@ -127,6 +127,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTelegramUser: (user) => set({ telegramUser: user }),
   isTelegramLinked: false,
   setTelegramLinked: (linked) => set({ isTelegramLinked: linked }),
+  needsLogout: false,
+  setNeedsLogout: (v) => set({ needsLogout: v }),
+  needsLogout: boolean,
+  setNeedsLogout: (v: boolean) => void,
 
   // Posts
   posts: [],
