@@ -71,7 +71,10 @@ export default function CreatePostScreen() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed')
+      }
       const post = await res.json()
 
       haptic([50, 100, 50])
@@ -82,12 +85,8 @@ export default function CreatePostScreen() {
       setScreen('feed')
     } catch (err: any) {
       haptic([100])
-      const msg = err?.message || err?.error || t('general.error', lang as Lang)
-      if (msg.includes('409') || msg.includes('Ya tienes')) {
-        setErrors({ title: lang === 'es' ? 'Ya tienes un post en esta categoría' : 'You already have a post in this category' })
-      } else {
-        setErrors({ title: msg })
-      }
+      const msg = err?.error || err?.message || t('general.error', lang as Lang)
+      setErrors({ title: msg })
     } finally {
       setLoading(false)
     }
