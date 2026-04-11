@@ -21,19 +21,26 @@ interface SubscriptionCheck {
 export default function TelegramGate({ children }: { children: React.ReactNode }) {
   const { setUser, setScreen, setTelegramUser, needsLogout, setNeedsLogout } = useAppStore()
   const [ready, setReady] = useState(false)
-  const [notInTelegram, setNotInTelegram] = useState(false)
   const [needsSubscription, setNeedsSubscription] = useState(false)
   const [subscriptions, setSubscriptions] = useState<SubscriptionCheck[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
     async function init() {
+      // If user previously logged out, skip Telegram check and go straight to
+      // register screen where they can enter any SFL ID
+      if (needsLogout) {
+        console.log('[TelegramGate] Logged out previously, going to register screen')
+        setReady(true)
+        return
+      }
+
       // @ts-ignore
       const tg = window.Telegram?.WebApp
 
       if (!tg) {
-        console.warn('[TelegramGate] No Telegram WebApp detected')
-        setNotInTelegram(true)
+        // Not in Telegram — treat as logged out so they can register with SFL ID
+        console.warn('[TelegramGate] No Telegram WebApp')
         setReady(true)
         return
       }
@@ -46,20 +53,10 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
       const tgUser = tg.initDataUnsafe?.user as TelegramUser | undefined
 
-      console.log('[TelegramGate] WebApp ready, initData length:', tg.initData?.length || 0)
-      console.log('[TelegramGate] User:', tgUser)
-      console.log('[TelegramGate] needsLogout:', needsLogout)
-
-      // If user previously logged out, show login screen (notInTelegram=true)
-      // so they can re-authenticate with same or another Telegram account
-      if (needsLogout) {
-        setNotInTelegram(true)
-        setReady(true)
-        return
-      }
+      console.log('[TelegramGate] WebApp ready, user:', tgUser)
 
       if (!tgUser) {
-        setNotInTelegram(true)
+        // No Telegram user — go to register screen
         setReady(true)
         return
       }
@@ -85,6 +82,7 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
           return
         }
 
+        // Telegram OK — upsert user and go to feed
         await upsertUser(tgUser)
         setReady(true)
       } catch (err) {
@@ -119,7 +117,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     setScreen('feed')
   }
 
-
   function openChat(username: string) {
     // @ts-ignore
     const tg = window.Telegram?.WebApp
@@ -130,36 +127,11 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     }
   }
 
-  // Never render during initial load
   if (!ready) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-50">
         <div className="animate-spin w-10 h-10 border-4 border-green-400 border-t-transparent rounded-full mb-4" />
         <p className="text-green-700 font-medium">Verificando...</p>
-      </div>
-    )
-  }
-
-
-  // User has logged out previously — show session closed screen
-  if (needsLogout) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-green-50 p-6 text-center">
-        <div className="text-5xl mb-4">👋</div>
-        <h2 className="text-xl font-bold text-green-900 mb-2">Sesión cerrada</h2>
-        <p className="text-green-600 text-sm mb-6">
-          Has cerrado sesión. Si querés entrar con la misma cuenta de Telegram,
-          tocá abajo. Para cambiar de cuenta, primero cambiá en Telegram.
-        </p>
-        <button
-          onClick={() => {
-            setNeedsLogout(false)
-            window.location.reload()
-          }}
-          className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-xl shadow-lg"
-        >
-          ✓ Volver a entrar
-        </button>
       </div>
     )
   }
@@ -227,13 +199,16 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     )
   }
 
+  // needsLogout=true OR no Telegram → go to register screen
+  // (renders children which is the register or feed screen based on store state)
   return <>{children}</>
 }
 
-// Call this to log out — persists in localStorage
+// Call this to log out
 export function logout() {
-  useAppStore.getState().setNeedsLogout(true)
-  useAppStore.getState().setUser(null)
-  useAppStore.getState().setTelegramUser(null)
-  useAppStore.getState().setScreen('link-telegram')
+  const store = useAppStore.getState()
+  store.setUser(null)
+  store.setTelegramUser(null)
+  store.setNeedsLogout(true)
+  store.setScreen('register')
 }

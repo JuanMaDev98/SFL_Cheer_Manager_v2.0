@@ -17,20 +17,26 @@ import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 const NAV_SCREENS = ['feed', 'my-posts', 'profile', 'post-detail'] as const
 
 export default function SunflowerApp() {
-  const { screen, user, showConfetti, setShowConfetti, setUser, setTelegramLinked, setScreen } = useAppStore()
+  const { screen, user, showConfetti, setShowConfetti, setUser, setTelegramLinked, setScreen, needsLogout } = useAppStore()
   const [isRestoring, setIsRestoring] = useState(true)
 
-  // Restore session on mount — auto-login if playerId is saved
+  // Restore session on mount
   useEffect(() => {
     async function restoreSession() {
+      // If needsLogout flag is set, skip auto-login and go to register
+      const store = useAppStore.getState()
+      if (store.needsLogout) {
+        store.setScreen('register')
+        setIsRestoring(false)
+        return
+      }
+
       try {
         const saved = localStorage.getItem('sunflower_user')
         const linked = localStorage.getItem('sunflower_telegram')
 
         if (saved) {
           const parsed = JSON.parse(saved)
-
-          // Silently re-validate user exists in DB by playerId
           if (parsed.playerId) {
             const res = await fetch(`/api/users?playerId=${parsed.playerId}`)
             if (res.ok) {
@@ -45,14 +51,13 @@ export default function SunflowerApp() {
             }
           }
         }
-
-        // No valid session — go to register
-        setScreen('register')
       } catch {
-        setScreen('register')
-      } finally {
-        setIsRestoring(false)
+        // ignore
       }
+
+      // No valid session
+      setScreen('register')
+      setIsRestoring(false)
     }
 
     restoreSession()

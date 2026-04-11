@@ -118,7 +118,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       // Navigation
-      screen: 'link-telegram',
+      screen: 'register',
       previousScreen: null,
       setScreen: (screen) => set({ previousScreen: get().screen, screen }),
       goBack: () => {
