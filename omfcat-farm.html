@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OMFCAT Farm Data</title>
+  <style>
+    body { background: #0a0a0a; color: #0f0; font-family: monospace; padding: 20px; }
+    pre { white-space: pre-wrap; word-wrap: break-word; font-size: 11px; max-height: 90vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h2>OMFCAT Farm JSON</h2>
+  <pre id="data">Cargando...</pre>
+  <script>
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'omfcat-farm.json', true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          document.getElementById('data').textContent = JSON.stringify(JSON.parse(xhr.responseText), null, 2);
+        } else {
+          // Try alternate path
+          const xhr2 = new XMLHttpRequest();
+          xhr2.open('GET', 'SFL_Cheer_Manager_v2.0/omfcat-farm.json', true);
+          xhr2.onreadystatechange = function() {
+            if (xhr2.readyState === 4 && xhr2.status === 200) {
+              document.getElementById('data').textContent = JSON.stringify(JSON.parse(xhr2.responseText), null, 2);
+            } else {
+              document.getElementById('data').textContent = 'File not found. Save omfcat-farm.json in the same folder as this HTML.';
+            }
+          };
+          xhr2.send();
+        }
+      }
+    };
+    xhr.send();
+  </script>
+</body>
+</html>

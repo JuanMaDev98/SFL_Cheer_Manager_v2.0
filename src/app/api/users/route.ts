@@ -26,29 +26,22 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid API key format' }, { status: 400 })
       }
       try {
-        console.log('[users POST] Starting encryption...')
         encryptedApiKey = encrypt(apiKey)
-        console.log('[users POST] Encryption successful, length:', encryptedApiKey.length)
       } catch (encError) {
-        // Return specific error for encryption failures
-        console.error('[users POST] Encryption error:', encError)
-        const errorMessage = encError instanceof Error ? encError.message : String(encError)
         return NextResponse.json({ 
           error: 'Server encryption error', 
-          details: errorMessage 
+          details: 'ENCRYPTION_KEY not configured on server' 
         }, { status: 500 })
       }
     }
 
-    console.log('[users POST] Input:', { telegramId, nickname, playerId, hasApiKey: !!apiKey })
-
-    // Only search by telegramId if it's a valid non-empty string (not undefined/null/"undefined")
+    // Only search by telegramId if it's a valid non-empty string
     const isValidTelegramId = telegramId && String(telegramId) !== 'undefined' && String(telegramId).trim() !== ''
 
     let existingUser = null
     let findError = null
 
-    // Priority 1: find by valid telegramId
+    // Priority 1: find by telegramId
     if (isValidTelegramId) {
       const result = await supabase
         .from('User')
@@ -57,7 +50,6 @@ export async function POST(request: Request) {
         .maybeSingle()
       existingUser = result.data
       findError = result.error
-      console.log('[users POST] find by telegramId:', !!existingUser)
     }
 
     // Priority 2: find by playerId (most reliable identifier from SFL)
@@ -69,11 +61,9 @@ export async function POST(request: Request) {
         .maybeSingle()
       existingUser = result.data
       findError = result.error
-      console.log('[users POST] find by playerId:', !!existingUser)
     }
 
     if (findError) {
-      console.error('[users POST] findError:', findError)
       throw findError
     }
 
@@ -81,7 +71,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       // Update user — preserve original telegramId if new one is invalid
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         nickname,
         playerId: playerId || existingUser.playerId,
       }
@@ -89,7 +79,7 @@ export async function POST(request: Request) {
       if (isValidTelegramId) {
         updateData.telegramId = String(telegramId)
       }
-      // Only update API key if provided (user wants to update it)
+      // Only update API key if provided
       if (encryptedApiKey) {
         updateData.encryptedApiKey = encryptedApiKey
       }
@@ -101,11 +91,7 @@ export async function POST(request: Request) {
         .select()
         .single()
 
-      console.log('[users POST] update result:', { data, error: updateError })
-      if (updateError) {
-        console.error('[users POST] updateError:', updateError)
-        throw updateError
-      }
+      if (updateError) throw updateError
       user = data
     } else {
       // Create new user
@@ -122,11 +108,7 @@ export async function POST(request: Request) {
         .select()
         .single()
 
-      console.log('[users POST] create result:', { data, error: createError })
-      if (createError) {
-        console.error('[users POST] createError:', createError)
-        throw createError
-      }
+      if (createError) throw createError
       user = data
     }
 
@@ -142,15 +124,12 @@ export async function POST(request: Request) {
       helpersReceived: user.helpersReceived,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      // Indicate if user has an API key set (for UI purposes)
       hasApiKey: !!user.encryptedApiKey,
     }
 
-    console.log('[users POST] Success, returning user (apiKey hidden)')
     return NextResponse.json(safeUser, { status: 201 })
   } catch (error) {
-    console.error('[users POST] Fatal error:', error)
-    return NextResponse.json({ error: 'Failed to create user', details: String(error) }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
   }
 }
 
@@ -161,49 +140,42 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const playerId = searchParams.get('playerId')
     const telegramId = searchParams.get('telegramId')
+    const playerId = searchParams.get('playerId')
 
-    if (telegramId && telegramId !== 'undefined') {
-      const { data: user, error } = await supabase
-        .from('User')
-        .select('*')
-        .eq('telegramId', telegramId)
-        .maybeSingle()
-
-      if (error) throw error
-      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      
-      // SECURITY: Remove encryptedApiKey before sending to client
-      const { encryptedApiKey, ...safeUser } = user
-      return NextResponse.json({ ...safeUser, hasApiKey: !!encryptedApiKey })
+    if (!telegramId && !playerId) {
+      return NextResponse.json({ error: 'telegramId or playerId required' }, { status: 400 })
     }
 
-    if (playerId) {
-      const { data: user, error } = await supabase
-        .from('User')
-        .select('*')
-        .eq('playerId', playerId)
-        .maybeSingle()
-
-      if (error) throw error
-      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      
-      // SECURITY: Remove encryptedApiKey before sending to client
-      const { encryptedApiKey, ...safeUser } = user
-      return NextResponse.json({ ...safeUser, hasApiKey: !!encryptedApiKey })
+    let query = supabase.from('User').select('*')
+    
+    if (telegramId) {
+      query = query.eq('telegramId', telegramId)
+    } else if (playerId) {
+      query = query.eq('playerId', playerId)
     }
 
-    const { data: users, error } = await supabase
-      .from('User')
-      .select('id, playerId, nickname, avatarIndex, helpersGiven, helpersReceived')
-      .order('createdAt', { ascending: false })
-      .limit(50)
+    const { data, error } = await query.maybeSingle()
 
     if (error) throw error
-    return NextResponse.json(users || [])
+    if (!data) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    // Remove encryptedApiKey before sending to client
+    const safeUser = {
+      id: data.id,
+      telegramId: data.telegramId,
+      nickname: data.nickname,
+      playerId: data.playerId,
+      avatarIndex: data.avatarIndex,
+      helpersGiven: data.helpersGiven,
+      helpersReceived: data.helpersReceived,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      hasApiKey: !!data.encryptedApiKey,
+    }
+
+    return NextResponse.json(safeUser)
   } catch (error) {
-    console.error('[users GET] Error:', error)
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 })
   }
 }

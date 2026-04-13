@@ -59,8 +59,6 @@ export default function RegisterScreen() {
       if (!username || username === 'undefined' || !data.farm_id) {
         throw new Error('no_username')
       }
-
-      console.log('[Register] SFL API response:', data)
       haptic([50, 100, 50])
       setLandInfo({ id: farmId, username })
       setStep('apikey')
@@ -100,7 +98,7 @@ export default function RegisterScreen() {
         throw new Error(data.error || 'Could not verify API key')
       }
 
-      console.log('[Register] API key verified:', data)
+      console.log('[Register] API key verified for farm:', farmId)
       haptic([50, 100, 50])
       setStep('confirm')
     } catch (err) {

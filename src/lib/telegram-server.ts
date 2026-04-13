@@ -15,8 +15,10 @@ export const MANDATORY_CHATS = [
   { username: 'MankoGuild', type: 'group' as const, name: 'Manko Guild' },
 ]
 
-// Extract user from initData WITHOUT hash validation (only for getting user info)
-// NOTE: For production, always validate the hash. This is a simplified version.
+/**
+ * Extract user from initData WITHOUT hash validation
+ * NOTE: For production, always validate the hash using validateInitData()
+ */
 export function getTelegramUserFromInitData(initData: string): TelegramUser | null {
   try {
     const params = new URLSearchParams(initData)
@@ -28,7 +30,10 @@ export function getTelegramUserFromInitData(initData: string): TelegramUser | nu
   }
 }
 
-// Full validation of initData (hash check)
+/**
+ * Full validation of initData (hash check + expiry)
+ * Validates against Telegram's WebAppData secret
+ */
 export function validateInitData(initData: string): TelegramUser | null {
   if (!BOT_TOKEN) {
     console.error('[Telegram] BOT_TOKEN not configured')
@@ -62,9 +67,6 @@ export function validateInitData(initData: string): TelegramUser | null {
       .replace(/=+$/, '')
 
     if (dataCheckHash !== receivedHash) {
-      console.error('[Telegram] Hash mismatch')
-      console.log('[Telegram] Computed:', dataCheckHash)
-      console.log('[Telegram] Received:', receivedHash)
       return null
     }
 
@@ -72,7 +74,6 @@ export function validateInitData(initData: string): TelegramUser | null {
     const authDate = parseInt(params.get('auth_date') || '0')
     const now = Math.floor(Date.now() / 1000)
     if (now - authDate > 86400) {
-      console.error('[Telegram] initData expired')
       return null
     }
 
@@ -86,6 +87,9 @@ export function validateInitData(initData: string): TelegramUser | null {
   }
 }
 
+/**
+ * Check if user is a member of a specific Telegram chat
+ */
 export async function checkMembership(
   userId: number,
   chatUsername: string
@@ -123,6 +127,9 @@ export async function checkMembership(
   }
 }
 
+/**
+ * Check all mandatory subscriptions for a user
+ */
 export async function checkUserSubscriptions(user: TelegramUser) {
   const subscriptions = await Promise.all(
     MANDATORY_CHATS.map(async (chat) => {
