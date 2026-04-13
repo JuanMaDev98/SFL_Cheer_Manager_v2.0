@@ -86,7 +86,10 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
 
         {/* Cooking Pot Badge */}
         {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && (
-          <div className="mt-2 flex items-center gap-1">
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-semibold text-green-600">
+              {lang === 'es' ? 'Cooking Pot activo' : 'Cooking Pot active'}
+            </span>
             {post.hasBasicCookingPot && (
               <img src="/assets/monuments/basic_cooking_pot.webp" alt="Basic" className="w-5 h-5 object-contain" />
             )}
@@ -96,9 +99,6 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
             {post.hasAdvancedCookingPot && (
               <img src="/assets/monuments/advanced_cooking_pot.webp" alt="Advanced" className="w-5 h-5 object-contain" />
             )}
-            <span className="text-[10px] text-orange-600">
-              ({lang === 'es' ? 'puede dar comida' : 'can give food'})
-            </span>
           </div>
         )}
 

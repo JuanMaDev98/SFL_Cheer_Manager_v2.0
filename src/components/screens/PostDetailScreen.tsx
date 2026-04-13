@@ -289,7 +289,10 @@ export default function PostDetailScreen() {
 
               {/* Cooking Pot Badge */}
               {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && (
-                <div className="flex items-center gap-2 mb-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                <div className="flex items-center gap-2 mb-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                  <span className="text-xs font-semibold text-green-700">
+                    {lang === 'es' ? 'Cooking Pot activo' : 'Cooking Pot active'}
+                  </span>
                   <div className="flex -space-x-1">
                     {post.hasBasicCookingPot && (
                       <img src="/assets/monuments/basic_cooking_pot.webp" alt="Basic" className="w-8 h-8 object-contain" />
@@ -300,20 +303,6 @@ export default function PostDetailScreen() {
                     {post.hasAdvancedCookingPot && (
                       <img src="/assets/monuments/advanced_cooking_pot.webp" alt="Advanced" className="w-8 h-8 object-contain" />
                     )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-orange-700">
-                      {(() => {
-                        const pots = []
-                        if (post.hasBasicCookingPot) pots.push('Basic')
-                        if (post.hasExpertCookingPot) pots.push('Expert')
-                        if (post.hasAdvancedCookingPot) pots.push('Advanced')
-                        return pots.join(' + ') + ' Cooking Pot'
-                      })()}
-                    </p>
-                    <p className="text-xs text-orange-600">
-                      {lang === 'es' ? 'Este farmer puede darte comida a cambio de tu ayuda' : 'This farmer can give you food in return for your help'}
-                    </p>
                   </div>
                 </div>
               )}
