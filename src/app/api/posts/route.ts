@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { title, message, farmId, category, helpersNeeded, ownerId } = body
+    const { title, message, farmId, category, helpersNeeded, ownerId, hasCookingPot, cookingPotType } = body
 
     if (!title || !farmId || !ownerId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -74,6 +74,8 @@ export async function POST(request: Request) {
         category: category || 'cleaning',
         helpersNeeded: helpersNeeded || 10,
         ownerId,
+        hasCookingPot: hasCookingPot || false,
+        cookingPotType: cookingPotType || null,
       })
       .select('*, owner:User(id, nickname, avatarIndex)')
       .single()

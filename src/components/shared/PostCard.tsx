@@ -74,7 +74,7 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
           />
         </div>
 
-        {/* Title + category */}
+        {/* Title + category + cooking pot badge */}
         <div className="mt-3 flex items-start gap-2">
           <h3 className="text-base font-bold text-green-900 leading-tight flex-1">
             {post.title}
@@ -83,6 +83,19 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
             {cat.emoji} {compact ? post.category : t(cat.labelKey, lang as Lang)} {cat.secondEmoji || cat.emoji}
           </span>
         </div>
+
+        {/* Cooking Pot Badge */}
+        {post.hasCookingPot && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="text-xs">🍳</span>
+            <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+              {post.cookingPotType || 'Cooking Pot'}
+            </span>
+            <span className="text-[10px] text-orange-500">
+              ({lang === 'es' ? 'puede dar comida' : 'can give food'})
+            </span>
+          </div>
+        )}
 
         {/* Message preview */}
         {!compact && (

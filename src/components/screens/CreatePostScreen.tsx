@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Send, Sparkles } from 'lucide-react'
+import { ArrowLeft, Send, Sparkles, ChefHat } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,15 +24,31 @@ export default function CreatePostScreen() {
   const [category, setCategory] = useState('help-x-help')
   const [helpersNeeded, setHelpersNeeded] = useState(1)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [cookingPotStatus, setCookingPotStatus] = useState<{ hasPot: boolean; pots: string[] }>({ hasPot: false, pots: [] })
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
   }
 
+  // Check cooking pot status when user changes
+  useEffect(() => {
+    const checkCookingPot = async () => {
+      if (!user?.playerId || !user?.apiKey) return
+      
+      try {
+        const res = await fetch(`/api/cooking-pots?farmId=${user.playerId}&apiKey=${encodeURIComponent(user.apiKey)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setCookingPotStatus({ hasPot: data.hasCookingPot, pots: data.pots || [] })
+        }
+      } catch {}
+    }
+    checkCookingPot()
+  }, [user?.playerId, user?.apiKey])
+
   const showComingSoon = () => {
     haptic([50, 50, 50])
     const msg = lang === 'es' ? '¡Muy pronto! 🌻' : 'Coming soon! 🌻'
-    // Simple toast via alert for now — replace with your toast lib if needed
     window.alert(msg)
   }
 
@@ -64,6 +80,8 @@ export default function CreatePostScreen() {
           category,
           helpersNeeded,
           ownerId: user.id,
+          hasCookingPot: cookingPotStatus.hasPot,
+          cookingPotType: cookingPotStatus.pots[0] || null,
         }),
       })
 
@@ -118,6 +136,35 @@ export default function CreatePostScreen() {
           onSubmit={handleSubmit}
           className="max-w-md mx-auto px-4 py-5 flex flex-col gap-5"
         >
+          {/* Cooking Pot Status Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 ${
+              cookingPotStatus.hasPot
+                ? 'bg-orange-50 border-orange-300'
+                : 'bg-gray-50 border-gray-200'
+            }`}
+          >
+            <ChefHat className={`w-5 h-5 ${cookingPotStatus.hasPot ? 'text-orange-500' : 'text-gray-400'}`} />
+            <div className="flex-1">
+              <p className={`text-sm font-semibold ${cookingPotStatus.hasPot ? 'text-orange-700' : 'text-gray-500'}`}>
+                {cookingPotStatus.hasPot
+                  ? (lang === 'es' ? '¡Tienes Cooking Pot!' : 'You have a Cooking Pot!')
+                  : (lang === 'es' ? 'Sin Cooking Pot' : 'No Cooking Pot')
+                }
+              </p>
+              {cookingPotStatus.hasPot && cookingPotStatus.pots.length > 0 && (
+                <p className="text-xs text-orange-600">
+                  {cookingPotStatus.pots.join(', ')}
+                </p>
+              )}
+            </div>
+            {cookingPotStatus.hasPot && (
+              <span className="text-sm">🍳</span>
+            )}
+          </motion.div>
+
           {/* Title */}
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold text-green-800">
@@ -252,6 +299,11 @@ export default function CreatePostScreen() {
                       return `${cat?.emoji || ''} ${t(cat?.labelKey || 'create.help-x-help', lang as Lang)} ${cat?.secondEmoji || cat?.emoji || ''}`
                     })()}
                   </span>
+                  {cookingPotStatus.hasPot && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600">
+                      🍳 {cookingPotStatus.pots[0] || 'Cooking Pot'}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>

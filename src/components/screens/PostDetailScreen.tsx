@@ -287,6 +287,21 @@ export default function PostDetailScreen() {
                 </span>
               )}
 
+              {/* Cooking Pot Badge */}
+              {post.hasCookingPot && (
+                <div className="flex items-center gap-2 mb-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                  <span className="text-2xl">🍳</span>
+                  <div>
+                    <p className="text-sm font-bold text-orange-700">
+                      {post.cookingPotType || 'Cooking Pot'}
+                    </p>
+                    <p className="text-xs text-orange-600">
+                      {lang === 'es' ? 'Este farmer puede darte comida a cambio de tu ayuda' : 'This farmer can give you food in return for your help'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Message */}
               <p className="text-sm text-green-800 leading-relaxed mb-4">
                 {post.message}
