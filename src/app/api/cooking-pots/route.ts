@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 
 const SFL_API_BASE = 'https://api.sunflower-land.com/community/farms'
 
-const COOKING_POT_TYPES = [
-  'Basic Cooking Pot',
-  'Expert Cooking Pot',
-  'Advanced Cooking Pot',
+const COOKING_POTS = [
+  { key: 'basicCookingPot', label: 'Basic Cooking Pot', asset: '/assets/monuments/basic_cooking_pot.webp' },
+  { key: 'expertCookingPot', label: 'Expert Cooking Pot', asset: '/assets/monuments/expert_cooking_pot.webp' },
+  { key: 'advancedCookingPot', label: 'Advanced Cooking Pot', asset: '/assets/monuments/advanced_cooking_pot.webp' },
 ]
 
 export async function GET(request: Request) {
@@ -18,9 +18,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'farmId required' }, { status: 400 })
     }
 
-    // If no API key provided, return false (cannot check)
     if (!apiKey) {
-      return NextResponse.json({ hasCookingPot: false, pots: [] })
+      return NextResponse.json({
+        hasAnyCookingPot: false,
+        pots: [],
+        details: { basic: false, expert: false, advanced: false },
+      })
     }
 
     const res = await fetch(`${SFL_API_BASE}/${farmId}`, {
@@ -31,21 +34,35 @@ export async function GET(request: Request) {
     })
 
     if (!res.ok) {
-      return NextResponse.json({ hasCookingPot: false, pots: [] })
+      return NextResponse.json({
+        hasAnyCookingPot: false,
+        pots: [],
+        details: { basic: false, expert: false, advanced: false },
+      })
     }
 
     const data = await res.json()
     const inventory = data.farm?.inventory || {}
 
-    // Check for cooking pots
-    const foundPots = COOKING_POT_TYPES.filter(pot => (inventory[pot] || 0) > 0)
-    const hasCookingPot = foundPots.length > 0
+    const details = {
+      basic: (inventory['Basic Cooking Pot'] || 0) > 0,
+      expert: (inventory['Expert Cooking Pot'] || 0) > 0,
+      advanced: (inventory['Advanced Cooking Pot'] || 0) > 0,
+    }
+
+    const pots = COOKING_POTS.filter(pot => (inventory[pot.label] || 0) > 0)
+      .map(pot => ({ label: pot.label, asset: pot.asset }))
 
     return NextResponse.json({
-      hasCookingPot,
-      pots: foundPots,
+      hasAnyCookingPot: pots.length > 0,
+      pots,
+      details,
     })
   } catch (err) {
-    return NextResponse.json({ hasCookingPot: false, pots: [] })
+    return NextResponse.json({
+      hasAnyCookingPot: false,
+      pots: [],
+      details: { basic: false, expert: false, advanced: false },
+    })
   }
 }

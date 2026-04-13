@@ -85,13 +85,18 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
         </div>
 
         {/* Cooking Pot Badge */}
-        {post.hasCookingPot && (
-          <div className="mt-2 flex items-center gap-1.5">
-            <span className="text-xs">🍳</span>
-            <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
-              {post.cookingPotType || 'Cooking Pot'}
-            </span>
-            <span className="text-[10px] text-orange-500">
+        {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && (
+          <div className="mt-2 flex items-center gap-1">
+            {post.hasBasicCookingPot && (
+              <img src="/assets/monuments/basic_cooking_pot.webp" alt="Basic" className="w-5 h-5 object-contain" />
+            )}
+            {post.hasExpertCookingPot && (
+              <img src="/assets/monuments/expert_cooking_pot.webp" alt="Expert" className="w-5 h-5 object-contain" />
+            )}
+            {post.hasAdvancedCookingPot && (
+              <img src="/assets/monuments/advanced_cooking_pot.webp" alt="Advanced" className="w-5 h-5 object-contain" />
+            )}
+            <span className="text-[10px] text-orange-600">
               ({lang === 'es' ? 'puede dar comida' : 'can give food'})
             </span>
           </div>

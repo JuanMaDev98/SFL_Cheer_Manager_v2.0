@@ -50,8 +50,9 @@ export interface FarmPost {
   }
   createdAt: string
   updatedAt: string
-  hasCookingPot?: boolean
-  cookingPotType?: string | null
+  hasBasicCookingPot?: boolean
+  hasExpertCookingPot?: boolean
+  hasAdvancedCookingPot?: boolean
 }
 
 export interface UserProfile {

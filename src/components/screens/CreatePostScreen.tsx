@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Send, Sparkles, ChefHat } from 'lucide-react'
+import { ArrowLeft, Send, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,6 +17,12 @@ import type { Lang } from '@/lib/i18n'
 
 const CATEGORIES = Object.entries(categoryConfig).map(([key, val]) => ({ key, emoji: val.emoji, labelKey: val.labelKey, secondEmoji: val.secondEmoji, disabled: key === 'flower-x-help' }))
 
+interface CookingPotStatus {
+  hasAny: boolean
+  pots: { label: string; asset: string }[]
+  details: { basic: boolean; expert: boolean; advanced: boolean }
+}
+
 export default function CreatePostScreen() {
   const { lang, user, setScreen, addPost, setShowConfetti, setLoading, isLoading } = useAppStore()
   const [title, setTitle] = useState('')
@@ -24,13 +30,14 @@ export default function CreatePostScreen() {
   const [category, setCategory] = useState('help-x-help')
   const [helpersNeeded, setHelpersNeeded] = useState(1)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [cookingPotStatus, setCookingPotStatus] = useState<{ hasPot: boolean; pots: string[] }>({ hasPot: false, pots: [] })
+  const [cookingPotStatus, setCookingPotStatus] = useState<CookingPotStatus>({
+    hasAny: false, pots: [], details: { basic: false, expert: false, advanced: false }
+  })
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
   }
 
-  // Check cooking pot status when user changes
   useEffect(() => {
     const checkCookingPot = async () => {
       if (!user?.playerId || !user?.apiKey) return
@@ -39,7 +46,11 @@ export default function CreatePostScreen() {
         const res = await fetch(`/api/cooking-pots?farmId=${user.playerId}&apiKey=${encodeURIComponent(user.apiKey)}`)
         if (res.ok) {
           const data = await res.json()
-          setCookingPotStatus({ hasPot: data.hasCookingPot, pots: data.pots || [] })
+          setCookingPotStatus({
+            hasAny: data.hasAnyCookingPot,
+            pots: data.pots || [],
+            details: data.details || { basic: false, expert: false, advanced: false }
+          })
         }
       } catch {}
     }
@@ -80,8 +91,9 @@ export default function CreatePostScreen() {
           category,
           helpersNeeded,
           ownerId: user.id,
-          hasCookingPot: cookingPotStatus.hasPot,
-          cookingPotType: cookingPotStatus.pots[0] || null,
+          hasBasicCookingPot: cookingPotStatus.details.basic,
+          hasExpertCookingPot: cookingPotStatus.details.expert,
+          hasAdvancedCookingPot: cookingPotStatus.details.advanced,
         }),
       })
 
@@ -105,6 +117,13 @@ export default function CreatePostScreen() {
       setLoading(false)
     }
   }
+
+  // Get cooking pot image for a type
+  const getPotImage = (type: 'basic' | 'expert' | 'advanced') => {
+    return `/assets/monuments/${type}_cooking_pot.webp`
+  }
+
+  const cookingPotCount = cookingPotStatus.pots.length
 
   return (
     <div className="flex flex-col min-h-screen safe-top">
@@ -136,32 +155,65 @@ export default function CreatePostScreen() {
           onSubmit={handleSubmit}
           className="max-w-md mx-auto px-4 py-5 flex flex-col gap-5"
         >
-          {/* Cooking Pot Status Badge */}
+          {/* Cooking Pot Status */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 ${
-              cookingPotStatus.hasPot
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
+              cookingPotStatus.hasAny
                 ? 'bg-orange-50 border-orange-300'
                 : 'bg-gray-50 border-gray-200'
             }`}
           >
-            <ChefHat className={`w-5 h-5 ${cookingPotStatus.hasPot ? 'text-orange-500' : 'text-gray-400'}`} />
-            <div className="flex-1">
-              <p className={`text-sm font-semibold ${cookingPotStatus.hasPot ? 'text-orange-700' : 'text-gray-500'}`}>
-                {cookingPotStatus.hasPot
-                  ? (lang === 'es' ? '¡Tienes Cooking Pot!' : 'You have a Cooking Pot!')
-                  : (lang === 'es' ? 'Sin Cooking Pot' : 'No Cooking Pot')
-                }
-              </p>
-              {cookingPotStatus.hasPot && cookingPotStatus.pots.length > 0 && (
-                <p className="text-xs text-orange-600">
-                  {cookingPotStatus.pots.join(', ')}
-                </p>
-              )}
-            </div>
-            {cookingPotStatus.hasPot && (
-              <span className="text-sm">🍳</span>
+            {cookingPotStatus.hasAny ? (
+              <>
+                <div className="flex -space-x-1">
+                  {cookingPotStatus.details.basic && (
+                    <img
+                      src={getPotImage('basic')}
+                      alt="Basic"
+                      className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                      style={{ zIndex: 3 }}
+                    />
+                  )}
+                  {cookingPotStatus.details.expert && (
+                    <img
+                      src={getPotImage('expert')}
+                      alt="Expert"
+                      className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                      style={{ zIndex: 2 }}
+                    />
+                  )}
+                  {cookingPotStatus.details.advanced && (
+                    <img
+                      src={getPotImage('advanced')}
+                      alt="Advanced"
+                      className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                      style={{ zIndex: 1 }}
+                    />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-orange-700">
+                    {lang === 'es' ? '¡Tienes' : 'You have'} {cookingPotCount} Cooking Pot{cookingPotCount > 1 ? 's' : ''}!
+                  </p>
+                  <p className="text-xs text-orange-600">
+                    {lang === 'es' ? 'Los helpers pueden recibir comida de vuelta' : 'Helpers can receive food in return'}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl">🍳</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-500">
+                    {lang === 'es' ? 'Sin Cooking Pot' : 'No Cooking Pot'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {lang === 'es' ? 'Los helpers no recibirán comida' : 'Helpers won\'t receive food'}
+                  </p>
+                </div>
+              </>
             )}
           </motion.div>
 
@@ -299,10 +351,18 @@ export default function CreatePostScreen() {
                       return `${cat?.emoji || ''} ${t(cat?.labelKey || 'create.help-x-help', lang as Lang)} ${cat?.secondEmoji || cat?.emoji || ''}`
                     })()}
                   </span>
-                  {cookingPotStatus.hasPot && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600">
-                      🍳 {cookingPotStatus.pots[0] || 'Cooking Pot'}
-                    </span>
+                  {cookingPotStatus.hasAny && (
+                    <div className="flex items-center gap-1">
+                      {cookingPotStatus.details.basic && (
+                        <img src={getPotImage('basic')} alt="" className="w-5 h-5 object-contain" />
+                      )}
+                      {cookingPotStatus.details.expert && (
+                        <img src={getPotImage('expert')} alt="" className="w-5 h-5 object-contain" />
+                      )}
+                      {cookingPotStatus.details.advanced && (
+                        <img src={getPotImage('advanced')} alt="" className="w-5 h-5 object-contain" />
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>
