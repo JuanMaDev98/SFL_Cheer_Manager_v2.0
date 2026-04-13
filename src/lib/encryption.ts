@@ -27,59 +27,99 @@ export function getEncryptionKey(): string | null {
   return key
 }
 
-function hexToBuffer(hex: string): Buffer {
-  return Buffer.from(hex, 'hex')
+/**
+ * Get random bytes using globalThis.crypto (works in all JS environments)
+ */
+function getRandomBytes(length: number): Uint8Array {
+  return globalThis.crypto.getRandomValues(new Uint8Array(length))
 }
 
-function bufferToHex(buffer: Buffer): string {
-  return buffer.toString('hex')
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
+  }
+  return bytes
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**
- * Encrypts plaintext using AES-256-GCM
+ * Encrypts plaintext using AES-256-GCM via Web Crypto API
+ * Works in Edge runtime, Node.js 18+, and serverless environments
  * Returns: iv (12 bytes) + ciphertext + authTag (16 bytes) all as hex
  * Throws if ENCRYPTION_KEY not configured
  */
-export function encrypt(plaintext: string): string {
+export async function encrypt(plaintext: string): Promise<string> {
   const ENCRYPTION_KEY = getEncryptionKey()
   if (!ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is required for API key encryption')
   }
   
-  const key = hexToBuffer(ENCRYPTION_KEY)
-  const iv = crypto.randomBytes(IV_LENGTH)
+  const keyBytes = hexToBytes(ENCRYPTION_KEY)
+  const iv = getRandomBytes(IV_LENGTH)
   
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, 'utf8'),
-    cipher.final()
-  ])
-  const authTag = cipher.getAuthTag()
+  // Import the key for AES-256-GCM
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'aes-256-gcm', length: 256 },
+    false,
+    ['encrypt']
+  )
   
-  // Prepend IV, append auth tag
-  return bufferToHex(iv) + bufferToHex(encrypted) + bufferToHex(authTag)
+  // Encrypt using Web Crypto API
+  const encoded = new TextEncoder().encode(plaintext)
+  const encryptedBuffer = await globalThis.crypto.subtle.encrypt(
+    { name: 'aes-256-gcm', iv: iv },
+    cryptoKey,
+    encoded
+  )
+  
+  // Web Crypto appends the auth tag to the ciphertext
+  const encrypted = new Uint8Array(encryptedBuffer)
+  
+  // IV + ciphertext (with auth tag at end)
+  return bytesToHex(iv) + bytesToHex(encrypted)
 }
 
 /**
  * Decrypts ciphertext encrypted with encrypt()
- * Throws if ENCRYPTION_KEY not configured
  */
-export function decrypt(ciphertext: string): string {
+export async function decrypt(ciphertext: string): Promise<string> {
   const ENCRYPTION_KEY = getEncryptionKey()
   if (!ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is required for API key decryption')
   }
   
-  const key = hexToBuffer(ENCRYPTION_KEY)
+  const keyBytes = hexToBytes(ENCRYPTION_KEY)
   
-  const iv = hexToBuffer(ciphertext.slice(0, IV_LENGTH * 2))
-  const authTag = hexToBuffer(ciphertext.slice(-AUTH_TAG_LENGTH * 2))
-  const encrypted = hexToBuffer(ciphertext.slice(IV_LENGTH * 2, -AUTH_TAG_LENGTH * 2))
+  // Extract IV (first 12 bytes = 24 hex chars)
+  const iv = hexToBytes(ciphertext.substring(0, 24))
+  // Extract auth tag (last 32 hex chars = 16 bytes)
+  const authTag = hexToBytes(ciphertext.substring(ciphertext.length - 32))
+  // Extract encrypted data (between IV and auth tag)
+  const encrypted = hexToBytes(ciphertext.substring(24, ciphertext.length - 32))
   
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
-  decipher.setAuthTag(authTag)
+  // Import key
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'aes-256-gcm', length: 256 },
+    false,
+    ['decrypt']
+  )
   
-  return decipher.update(encrypted) + decipher.final('utf8')
+  // Decrypt - Web Crypto expects auth tag appended to ciphertext
+  const decryptedBuffer = await globalThis.crypto.subtle.decrypt(
+    { name: 'aes-256-gcm', iv: iv },
+    cryptoKey,
+    encrypted
+  )
+  
+  return new TextDecoder().decode(decryptedBuffer)
 }
 
 /**
@@ -90,7 +130,6 @@ export function isValidSflApiKey(key: string): boolean {
   if (!key || typeof key !== 'string') return false
   if (key.length < 50 || key.length > 200) return false
   if (!key.startsWith('sfl.')) return false
-  // Basic format validation - should have 2 base64-like segments
   const parts = key.split('.')
   if (parts.length !== 3) return false
   return parts.every(part => part.length > 0)

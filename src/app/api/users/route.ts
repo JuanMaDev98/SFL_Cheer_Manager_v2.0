@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid API key format' }, { status: 400 })
       }
       try {
-        encryptedApiKey = encrypt(apiKey)
+        encryptedApiKey = await encrypt(apiKey)
       } catch (encError) {
         // Return specific error for encryption failures
         console.error('[users POST] Encryption error:', encError)
