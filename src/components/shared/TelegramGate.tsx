@@ -103,7 +103,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
           // playerId intentionally not sent - preserve farm ID from proper registration
         }),
       })
-      })
 
       if (res.ok) {
         const user = await res.json()
