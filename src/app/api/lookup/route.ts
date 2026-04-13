@@ -9,13 +9,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid farmId' }, { status: 400 })
     }
 
-    // Using the correct SFL API endpoint for farm info
     const res = await fetch(
-      `https://api.sunflower-land.com/community/farms/${farmId}`,
+      `https://sfl.world/api/v1/land/info/farm_id/${farmId}`,
       {
         headers: {
-          Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; SFL-Cheer-Manager/1.0)',
+          Accept: 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
       }
     )
@@ -26,13 +26,10 @@ export async function GET(request: Request) {
 
     const data = await res.json()
 
-    // The community endpoint returns { id, farm: { username }, nftId, ... }
-    const username = data.farm?.username || data.username
-
     return NextResponse.json({
-      username,
-      farm_id: data.id,
-      nft_id: data.nftId,
+      username: data.username,
+      farm_id: data.farm_id,
+      nft_id: data.nft_id,
     })
   } catch (err) {
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 })
