@@ -9,6 +9,8 @@
  * - Never exposed to frontend, never logged
  */
 
+import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto'
+
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
@@ -28,98 +30,61 @@ export function getEncryptionKey(): string | null {
 }
 
 /**
- * Get random bytes using globalThis.crypto (works in all JS environments)
- */
-function getRandomBytes(length: number): Uint8Array {
-  return globalThis.crypto.getRandomValues(new Uint8Array(length))
-}
-
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-  }
-  return bytes
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
-/**
- * Encrypts plaintext using AES-256-GCM via Web Crypto API
- * Works in Edge runtime, Node.js 18+, and serverless environments
+ * Encrypts plaintext using AES-256-GCM
+ * Uses Node.js crypto module (works in Vercel Node.js runtime)
  * Returns: iv (12 bytes) + ciphertext + authTag (16 bytes) all as hex
  * Throws if ENCRYPTION_KEY not configured
  */
-export async function encrypt(plaintext: string): Promise<string> {
+export function encrypt(plaintext: string): string {
   const ENCRYPTION_KEY = getEncryptionKey()
   if (!ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is required for API key encryption')
   }
   
-  const keyBytes = hexToBytes(ENCRYPTION_KEY)
-  const iv = getRandomBytes(IV_LENGTH)
+  // Create buffer from hex key
+  const keyBuffer = Buffer.from(ENCRYPTION_KEY, 'hex')
   
-  // Import the key for AES-256-GCM
-  const cryptoKey = await globalThis.crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'aes-256-gcm', length: 256 },
-    false,
-    ['encrypt']
-  )
+  // Generate random IV
+  const iv = randomBytes(IV_LENGTH)
   
-  // Encrypt using Web Crypto API
-  const encoded = new TextEncoder().encode(plaintext)
-  const encryptedBuffer = await globalThis.crypto.subtle.encrypt(
-    { name: 'aes-256-gcm', iv: iv },
-    cryptoKey,
-    encoded
-  )
+  // Create cipher
+  const cipher = createCipheriv(ALGORITHM, keyBuffer, iv)
   
-  // Web Crypto appends the auth tag to the ciphertext
-  const encrypted = new Uint8Array(encryptedBuffer)
+  // Encrypt
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, 'utf8'),
+    cipher.final()
+  ])
   
-  // IV + ciphertext (with auth tag at end)
-  return bytesToHex(iv) + bytesToHex(encrypted)
+  // Get auth tag (AES-GCM appends it)
+  const authTag = cipher.getAuthTag()
+  
+  // Return: iv + encrypted + authTag (all as hex)
+  return iv.toString('hex') + encrypted.toString('hex') + authTag.toString('hex')
 }
 
 /**
  * Decrypts ciphertext encrypted with encrypt()
  */
-export async function decrypt(ciphertext: string): Promise<string> {
+export function decrypt(ciphertext: string): string {
   const ENCRYPTION_KEY = getEncryptionKey()
   if (!ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is required for API key decryption')
   }
   
-  const keyBytes = hexToBytes(ENCRYPTION_KEY)
+  const keyBuffer = Buffer.from(ENCRYPTION_KEY, 'hex')
   
-  // Extract IV (first 12 bytes = 24 hex chars)
-  const iv = hexToBytes(ciphertext.substring(0, 24))
-  // Extract auth tag (last 32 hex chars = 16 bytes)
-  const authTag = hexToBytes(ciphertext.substring(ciphertext.length - 32))
-  // Extract encrypted data (between IV and auth tag)
-  const encrypted = hexToBytes(ciphertext.substring(24, ciphertext.length - 32))
+  // Extract parts
+  const iv = Buffer.from(ciphertext.substring(0, IV_LENGTH * 2), 'hex')
+  const authTag = Buffer.from(ciphertext.substring(ciphertext.length - AUTH_TAG_LENGTH * 2), 'hex')
+  const encrypted = Buffer.from(ciphertext.substring(IV_LENGTH * 2, ciphertext.length - AUTH_TAG_LENGTH * 2), 'hex')
   
-  // Import key
-  const cryptoKey = await globalThis.crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'aes-256-gcm', length: 256 },
-    false,
-    ['decrypt']
-  )
+  // Create decipher
+  const decipher = createDecipheriv(ALGORITHM, keyBuffer, iv)
+  decipher.setAuthTag(authTag)
   
-  // Decrypt - Web Crypto expects auth tag appended to ciphertext
-  const decryptedBuffer = await globalThis.crypto.subtle.decrypt(
-    { name: 'aes-256-gcm', iv: iv },
-    cryptoKey,
-    encrypted
-  )
-  
-  return new TextDecoder().decode(decryptedBuffer)
+  // Decrypt
+  return decipher.update(encrypted).toString('utf8') + decipher.final('utf8')
 }
 
 /**

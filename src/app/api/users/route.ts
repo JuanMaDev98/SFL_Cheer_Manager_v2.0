@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       }
       try {
         console.log('[users POST] Starting encryption...')
-        encryptedApiKey = await encrypt(apiKey)
+        encryptedApiKey = encrypt(apiKey)
         console.log('[users POST] Encryption successful, length:', encryptedApiKey.length)
       } catch (encError) {
         // Return specific error for encryption failures
