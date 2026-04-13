@@ -25,8 +25,16 @@ export async function POST(request: Request) {
       if (!isValidSflApiKey(apiKey)) {
         return NextResponse.json({ error: 'Invalid API key format' }, { status: 400 })
       }
-      // Encrypt the API key - will throw if ENCRYPTION_KEY not set
-      encryptedApiKey = encrypt(apiKey)
+      try {
+        encryptedApiKey = encrypt(apiKey)
+      } catch (encError) {
+        // Return specific error for encryption failures
+        console.error('[users POST] Encryption error:', encError)
+        return NextResponse.json({ 
+          error: 'Server encryption error', 
+          details: 'ENCRYPTION_KEY not configured on server' 
+        }, { status: 500 })
+      }
     }
 
     console.log('[users POST] Input:', { telegramId, nickname, playerId, hasApiKey: !!apiKey })

@@ -9,16 +9,23 @@
  * - Never exposed to frontend, never logged
  */
 
-// Key must be exactly 32 bytes for AES-256
-// In production: openssl rand -hex 32
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY!
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 64) {
-  throw new Error('ENCRYPTION_KEY must be set and be 64 hex characters (32 bytes)')
-}
-
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
+
+/**
+ * Get encryption key from environment
+ * Returns null if not properly configured
+ */
+export function getEncryptionKey(): string | null {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key || key.length !== 64) {
+    console.error('[encryption] ENCRYPTION_KEY not configured or invalid length:', 
+      key ? `${key.length} chars (expected 64)` : 'not set')
+    return null
+  }
+  return key
+}
 
 function hexToBuffer(hex: string): Buffer {
   return Buffer.from(hex, 'hex')
@@ -31,8 +38,14 @@ function bufferToHex(buffer: Buffer): string {
 /**
  * Encrypts plaintext using AES-256-GCM
  * Returns: iv (12 bytes) + ciphertext + authTag (16 bytes) all as hex
+ * Throws if ENCRYPTION_KEY not configured
  */
 export function encrypt(plaintext: string): string {
+  const ENCRYPTION_KEY = getEncryptionKey()
+  if (!ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is required for API key encryption')
+  }
+  
   const key = hexToBuffer(ENCRYPTION_KEY)
   const iv = crypto.randomBytes(IV_LENGTH)
   
@@ -49,8 +62,14 @@ export function encrypt(plaintext: string): string {
 
 /**
  * Decrypts ciphertext encrypted with encrypt()
+ * Throws if ENCRYPTION_KEY not configured
  */
 export function decrypt(ciphertext: string): string {
+  const ENCRYPTION_KEY = getEncryptionKey()
+  if (!ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is required for API key decryption')
+  }
+  
   const key = hexToBuffer(ENCRYPTION_KEY)
   
   const iv = hexToBuffer(ciphertext.slice(0, IV_LENGTH * 2))
