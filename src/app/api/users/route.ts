@@ -15,6 +15,8 @@ export async function POST(request: Request) {
   try {
     const { telegramId, nickname, playerId, apiKey } = await request.json()
 
+    console.log('[POST /api/users]Incoming:', { telegramId, nickname, playerId: playerId ? '[provided]' : '[not provided]', hasApiKey: !!apiKey })
+
     if (!nickname) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
         .select('*')
         .eq('telegramId', String(telegramId))
         .maybeSingle()
+      console.log('[POST /api/users]Lookup by telegramId:', telegramId, '-> found:', !!result.data, 'playerId in DB:', result.data?.playerId)
       existingUser = result.data
       findError = result.error
     }
@@ -60,6 +63,7 @@ export async function POST(request: Request) {
         .select('*')
         .eq('playerId', String(playerId))
         .maybeSingle()
+      console.log('[POST /api/users]Lookup by playerId:', playerId, '-> found:', !!result.data)
       existingUser = result.data
       findError = result.error
     }
@@ -72,6 +76,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       // UPDATE existing user — NEVER overwrite playerId with telegramId
+      console.log('[POST /api/users]Updating existing user id:', existingUser.id, 'existing playerId:', existingUser.playerId)
       const updateData: Record<string, unknown> = {
         nickname,
         // playerId: only update if explicitly provided, never overwrite with telegramId
@@ -97,6 +102,7 @@ export async function POST(request: Request) {
 
       if (updateError) throw updateError
       user = data
+      console.log('[POST /api/users]After update, user.playerId:', user.playerId)
     } else {
       // CREATE new user — playerId MUST come from actual SFL farm registration
       // NEVER use telegramId as a fallback for playerId
