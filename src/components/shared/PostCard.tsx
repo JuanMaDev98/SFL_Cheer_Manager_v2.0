@@ -84,8 +84,8 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
           </span>
         </div>
 
-        {/* Cooking Pot Badge */}
-        {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && (
+        {/* Cooking Pot Badge — hidden for cheer-x-cheer (no food reward) */}
+        {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && post.category !== 'cheer-x-cheer' && (
           <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-semibold text-green-600">
               {lang === 'es' ? 'Cooking Pot activo' : 'Cooking Pot active'}

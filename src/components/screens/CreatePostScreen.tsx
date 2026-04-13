@@ -200,11 +200,13 @@ export default function CreatePostScreen() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-orange-700">
+                  <p className="text-sm font-semibold text-green-700">
                     {lang === 'es' ? '¡Tienes' : 'You have'} {cookingPotCount} Cooking Pot{cookingPotCount > 1 ? 's' : ''}!
                   </p>
-                  <p className="text-xs text-orange-600">
-                    {lang === 'es' ? 'Los helpers pueden recibir comida de vuelta' : 'Helpers can receive food in return'}
+                  <p className="text-xs text-green-600">
+                    {lang === 'es'
+                      ? 'Los helpers pueden recibir comida de vuelta'
+                      : 'Helpers can receive food in return'}
                   </p>
                 </div>
               </>

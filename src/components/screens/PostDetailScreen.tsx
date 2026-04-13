@@ -287,8 +287,8 @@ export default function PostDetailScreen() {
                 </span>
               )}
 
-              {/* Cooking Pot Badge */}
-              {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && (
+              {/* Cooking Pot Badge — hidden for cheer-x-cheer (no food reward) */}
+              {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && post.category !== 'cheer-x-cheer' && (
                 <div className="flex items-center gap-2 mb-3 p-3 bg-green-50 rounded-xl border border-green-200">
                   <span className="text-xs font-semibold text-green-700">
                     {lang === 'es' ? 'Cooking Pot activo' : 'Cooking Pot active'}
