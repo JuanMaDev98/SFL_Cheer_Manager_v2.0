@@ -305,10 +305,7 @@ export default function RegisterScreen() {
                 <button
                   type="button"
                   onClick={() => {
-                    const url = lang === 'es' 
-                      ? 'https://docs.sunflower-land.com/developer-tutorials/using-the-api'
-                      : 'https://docs.sunflower-land.com/developer-tutorials/using-the-api'
-                    window.open(url, '_blank')
+                    window.open('https://t.me/JuanMaYoutube/1060', '_blank')
                   }}
                   className="text-xs text-green-600 hover:text-green-800 flex items-center gap-1"
                 >
