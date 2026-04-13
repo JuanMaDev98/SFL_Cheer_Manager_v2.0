@@ -40,22 +40,28 @@ export default function CreatePostScreen() {
 
   useEffect(() => {
     const checkCookingPot = async () => {
-      if (!user?.playerId || !user?.apiKey) return
+      if (!user?.id) return
       
       try {
-        const res = await fetch(`/api/cooking-pots?farmId=${user.playerId}&apiKey=${encodeURIComponent(user.apiKey)}`)
+        // Use server-side endpoint that decrypts the API key automatically
+        const res = await fetch(`/api/cooking-pots/check?userId=${user.id}`)
         if (res.ok) {
           const data = await res.json()
+          console.log('[CreatePost] Cooking pot check:', data)
           setCookingPotStatus({
             hasAny: data.hasAnyCookingPot,
             pots: data.pots || [],
             details: data.details || { basic: false, expert: false, advanced: false }
           })
+        } else {
+          console.warn('[CreatePost] Cooking pot check failed:', res.status)
         }
-      } catch {}
+      } catch (err) {
+        console.error('[CreatePost] Cooking pot check error:', err)
+      }
     }
     checkCookingPot()
-  }, [user?.playerId, user?.apiKey])
+  }, [user?.id])
 
   const showComingSoon = () => {
     haptic([50, 50, 50])
