@@ -100,8 +100,9 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
         body: JSON.stringify({
           telegramId: tgUser.id,
           nickname: tgUser.username || tgUser.first_name,
-          playerId: String(tgUser.id),
+          // playerId intentionally not sent - preserve farm ID from proper registration
         }),
+      })
       })
 
       if (res.ok) {
