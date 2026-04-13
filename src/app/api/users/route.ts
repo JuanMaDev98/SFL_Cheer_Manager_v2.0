@@ -1,15 +1,35 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { encrypt, isValidSflApiKey } from '@/lib/encryption'
 
+/**
+ * POST /api/users
+ * Create or update user with encrypted API key storage
+ * 
+ * Security:
+ * - API key is encrypted server-side using AES-256-GCM
+ * - Only encrypted form is stored, never the raw key
+ * - Raw key is never logged or returned to client
+ */
 export async function POST(request: Request) {
   try {
-    const { telegramId, nickname, playerId } = await request.json()
+    const { telegramId, nickname, playerId, apiKey } = await request.json()
 
     if (!nickname) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    console.log('[users POST] Input:', { telegramId, nickname, playerId })
+    // Validate API key format if provided
+    let encryptedApiKey: string | null = null
+    if (apiKey) {
+      if (!isValidSflApiKey(apiKey)) {
+        return NextResponse.json({ error: 'Invalid API key format' }, { status: 400 })
+      }
+      // Encrypt the API key - will throw if ENCRYPTION_KEY not set
+      encryptedApiKey = encrypt(apiKey)
+    }
+
+    console.log('[users POST] Input:', { telegramId, nickname, playerId, hasApiKey: !!apiKey })
 
     // Only search by telegramId if it's a valid non-empty string (not undefined/null/"undefined")
     const isValidTelegramId = telegramId && String(telegramId) !== 'undefined' && String(telegramId).trim() !== ''
@@ -58,6 +78,10 @@ export async function POST(request: Request) {
       if (isValidTelegramId) {
         updateData.telegramId = String(telegramId)
       }
+      // Only update API key if provided (user wants to update it)
+      if (encryptedApiKey) {
+        updateData.encryptedApiKey = encryptedApiKey
+      }
 
       const { data, error: updateError } = await supabase
         .from('User')
@@ -82,6 +106,7 @@ export async function POST(request: Request) {
           nickname,
           playerId: playerId || (isValidTelegramId ? String(telegramId) : null),
           avatarIndex,
+          encryptedApiKey,
         })
         .select()
         .single()
@@ -94,8 +119,24 @@ export async function POST(request: Request) {
       user = data
     }
 
-    console.log('[users POST] Success, returning user:', user)
-    return NextResponse.json(user, { status: 201 })
+    // SECURITY: Remove encryptedApiKey before sending to client
+    // The client should NEVER receive the encrypted API key
+    const safeUser = {
+      id: user.id,
+      telegramId: user.telegramId,
+      nickname: user.nickname,
+      playerId: user.playerId,
+      avatarIndex: user.avatarIndex,
+      helpersGiven: user.helpersGiven,
+      helpersReceived: user.helpersReceived,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      // Indicate if user has an API key set (for UI purposes)
+      hasApiKey: !!user.encryptedApiKey,
+    }
+
+    console.log('[users POST] Success, returning user (apiKey hidden)')
+    return NextResponse.json(safeUser, { status: 201 })
   } catch (error) {
     console.error('[users POST] Fatal error:', error)
     return NextResponse.json({ error: 'Failed to create user', details: String(error) }, { status: 500 })
@@ -121,7 +162,10 @@ export async function GET(request: Request) {
 
       if (error) throw error
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      return NextResponse.json(user)
+      
+      // SECURITY: Remove encryptedApiKey before sending to client
+      const { encryptedApiKey, ...safeUser } = user
+      return NextResponse.json({ ...safeUser, hasApiKey: !!encryptedApiKey })
     }
 
     if (playerId) {
@@ -133,7 +177,10 @@ export async function GET(request: Request) {
 
       if (error) throw error
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      return NextResponse.json(user)
+      
+      // SECURITY: Remove encryptedApiKey before sending to client
+      const { encryptedApiKey, ...safeUser } = user
+      return NextResponse.json({ ...safeUser, hasApiKey: !!encryptedApiKey })
     }
 
     const { data: users, error } = await supabase

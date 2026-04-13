@@ -9,11 +9,15 @@ export const supabase = supabaseUrl && supabaseAnonKey
   : null
 
 // Types matching our Supabase schema
+// Types matching our Supabase schema
+// NOTE: encryptedApiKey is stored server-side only, NEVER exposed to frontend
+
 export interface DbUser {
   id: string
   telegramId: string | null
   nickname: string
   playerId: string
+  encryptedApiKey: string | null  // Encrypted SFL API key (server-only, never send to client)
   avatarIndex: number
   helpersGiven: number
   helpersReceived: number
