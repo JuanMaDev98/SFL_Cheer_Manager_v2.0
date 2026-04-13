@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     let existingUser = null
     let findError = null
 
-    // Priority 1: find by telegramId
+    // Priority 1: find by telegramId (only for existing users with valid telegramId)
     if (isValidTelegramId) {
       const result = await supabase
         .from('User')
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     }
 
     // Priority 2: find by playerId (most reliable identifier from SFL)
+    // Only do this if we need to find an existing user by farm ID
     if (!existingUser && playerId) {
       const result = await supabase
         .from('User')
@@ -70,10 +71,13 @@ export async function POST(request: Request) {
     let user
 
     if (existingUser) {
-      // Update user — preserve original telegramId if new one is invalid
+      // UPDATE existing user — NEVER overwrite playerId with telegramId
       const updateData: Record<string, unknown> = {
         nickname,
-        playerId: playerId || existingUser.playerId,
+        // playerId: only update if explicitly provided, never overwrite with telegramId
+      }
+      if (playerId) {
+        updateData.playerId = String(playerId)
       }
       // Only update telegramId if we have a valid one
       if (isValidTelegramId) {
@@ -94,14 +98,21 @@ export async function POST(request: Request) {
       if (updateError) throw updateError
       user = data
     } else {
-      // Create new user
+      // CREATE new user — playerId MUST come from actual SFL farm registration
+      // NEVER use telegramId as a fallback for playerId
+      if (!playerId) {
+        return NextResponse.json(
+          { error: 'playerId is required for new users. Please register through the proper flow.' },
+          { status: 400 }
+        )
+      }
       const avatarIndex = Math.floor(Math.random() * 6)
       const { data, error: createError } = await supabase
         .from('User')
         .insert({
           telegramId: isValidTelegramId ? String(telegramId) : null,
           nickname,
-          playerId: playerId || (isValidTelegramId ? String(telegramId) : null),
+          playerId: String(playerId), // Real SFL farm ID — REQUIRED
           avatarIndex,
           encryptedApiKey,
         })
