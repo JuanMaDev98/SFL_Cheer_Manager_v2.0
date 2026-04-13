@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, LogOut, Edit3, Heart, HandHelping, MessageCircle, X, Check } from 'lucide-react'
+import { User, LogOut, Heart, HandHelping, MessageCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useAppStore } from '@/store/useAppStore'
 import { logout } from '@/components/shared/TelegramGate'
 import { t } from '@/lib/i18n'
@@ -15,10 +13,7 @@ import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 import type { Lang } from '@/lib/i18n'
 
 export default function ProfileScreen() {
-  const { user, lang, setUser, setScreen, setTelegramLinked, isTelegramLinked, setShowConfetti } = useAppStore()
-  const [isEditing, setIsEditing] = useState(false)
-  const [editNickname, setEditNickname] = useState('')
-  const [editPlayerId, setEditPlayerId] = useState('')
+  const { user, lang, setScreen, setTelegramLinked, isTelegramLinked } = useAppStore()
   const [joinedPosts, setJoinedPosts] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -27,7 +22,6 @@ export default function ProfileScreen() {
   }
 
   useEffect(() => {
-    // Fetch joined posts count (posts where user is a helper but not owner)
     const fetchJoined = async () => {
       if (!user) return
       setIsLoading(true)
@@ -45,38 +39,6 @@ export default function ProfileScreen() {
     }
     fetchJoined()
   }, [user])
-
-  const handleEdit = () => {
-    if (!user) return
-    setEditNickname(user.nickname)
-    setEditPlayerId(user.playerId)
-    setIsEditing(true)
-    haptic([20])
-  }
-
-  const handleSave = async () => {
-    if (!user || !editNickname.trim() || !editPlayerId.trim()) return
-    haptic([50])
-    try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegramId: user.telegramId || `manual_${Date.now()}`,
-          nickname: editNickname.trim(),
-          playerId: editPlayerId.trim(),
-        }),
-      })
-      if (res.ok) {
-        const updated = await res.json()
-        setUser(updated)
-        haptic([50, 100, 50])
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 3500)
-      }
-    } catch {}
-    setIsEditing(false)
-  }
 
   const handleLogout = () => {
     haptic([50])
@@ -154,73 +116,16 @@ export default function ProfileScreen() {
                   />
                 </motion.div>
 
-                {/* Info */}
-                {isEditing ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="w-full space-y-3"
-                  >
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-green-700">Nickname</Label>
-                      <Input
-                        value={editNickname}
-                        onChange={(e) => setEditNickname(e.target.value)}
-                        className="rounded-xl border-green-200 h-10 text-sm"
-                        maxLength={20}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-green-700">Player ID</Label>
-                      <Input
-                        value={editPlayerId}
-                        onChange={(e) => setEditPlayerId(e.target.value)}
-                        className="rounded-xl border-green-200 h-10 text-sm"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSave}
-                        size="sm"
-                        className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        {t('general.save', lang as Lang)}
-                      </Button>
-                      <Button
-                        onClick={() => setIsEditing(false)}
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl border-green-200"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="text-center">
-                    <h2 className="text-xl font-bold text-green-900">{user.nickname}</h2>
-                    <p className="text-xs text-green-500 mt-1 font-mono">{user.playerId}</p>
-                    {isTelegramLinked && (
-                      <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-                        <Check className="w-3 h-3" /> Telegram {lang === 'es' ? 'vinculado' : 'linked'}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Edit button */}
-                {!isEditing && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEdit}
-                    className="rounded-xl border-green-200 text-green-700 hover:bg-green-50 text-xs font-semibold gap-1"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    {t('profile.edit', lang as Lang)}
-                  </Button>
-                )}
+                {/* Info - Display only, no editing */}
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-green-900">{user.nickname}</h2>
+                  <p className="text-xs text-green-500 mt-1 font-mono">{user.playerId}</p>
+                  {isTelegramLinked && (
+                    <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                      ✓ Telegram {lang === 'es' ? 'vinculado' : 'linked'}
+                    </span>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

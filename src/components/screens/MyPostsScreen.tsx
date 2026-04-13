@@ -162,7 +162,7 @@ export default function MyPostsScreen() {
                               <div className="min-w-0">
                                 <p className="text-sm font-bold text-green-900 truncate">{post.title}</p>
                                 <p className="text-[10px] text-green-600">
-                                  {t('general.farm', lang as Lang)} #{post.farmId.slice(-6)}
+                                  {t('general.farm', lang as Lang)} #{post.farmId}
                                 </p>
                               </div>
                             </div>
@@ -236,3 +236,4 @@ export default function MyPostsScreen() {
     </div>
   )
 }
+

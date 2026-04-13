@@ -62,7 +62,7 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
                 {post.owner.nickname}
               </p>
               <p className="text-[10px] text-green-600">
-                {t('general.farm', lang as Lang)} #{post.farmId.slice(-6)}
+                {t('general.farm', lang as Lang)} #{post.farmId}
               </p>
             </div>
           </div>
@@ -114,3 +114,4 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
 // Memoize to prevent re-renders when parent re-renders with same props
 const PostCard = memo(PostCardInner)
 export default PostCard
+

@@ -235,7 +235,7 @@ export default function PostDetailScreen() {
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-green-900 truncate">{post.title}</h1>
             <p className="text-[10px] text-green-500">
-              #{post.farmId.slice(-6)}
+              #{post.farmId}
             </p>
           </div>
           {isOwner && (
@@ -275,7 +275,7 @@ export default function PostDetailScreen() {
                     )}
                   </div>
                   <p className="text-xs text-green-500">
-                    {t('general.farm', lang as Lang)} #{post.farmId.slice(-6)}
+                    {t('general.farm', lang as Lang)} #{post.farmId}
                   </p>
                 </div>
               </div>
@@ -562,5 +562,6 @@ export default function PostDetailScreen() {
     </div>
   )
 }
+
 
 
