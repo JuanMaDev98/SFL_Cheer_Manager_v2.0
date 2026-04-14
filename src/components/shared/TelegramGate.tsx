@@ -19,7 +19,7 @@ interface SubscriptionCheck {
 }
 
 export default function TelegramGate({ children }: { children: React.ReactNode }) {
-  const { setUser, setScreen, setTelegramUser, needsLogout } = useAppStore()
+  const { user, setUser, setScreen, setTelegramUser } = useAppStore()
   const [ready, setReady] = useState(false)
   const [needsSubscription, setNeedsSubscription] = useState(false)
   const [subscriptions, setSubscriptions] = useState<SubscriptionCheck[]>([])
@@ -27,13 +27,6 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function checkTelegram() {
-      // If user manually logged out, skip Telegram check
-      if (needsLogout) {
-        console.log('[TelegramGate] needsLogout=true, skipping')
-        setReady(true)
-        return
-      }
-
       // @ts-ignore
       const tg = window.Telegram?.WebApp
 
@@ -59,6 +52,23 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
       setTelegramUser(tgUser)
 
+      // If ghost user (exists but has no API key), clear and go to register
+      if (user && !user.hasApiKey) {
+        console.log('[TelegramGate] Ghost user detected (no API key), clearing and requiring re-login')
+        localStorage.removeItem('useAppStore')
+        setScreen('register')
+        setReady(true)
+        return
+      }
+
+      // If valid user already exists, skip auto-login
+      if (user && user.hasApiKey) {
+        console.log('[TelegramGate] Valid user exists, skipping auto-login')
+        setReady(true)
+        return
+      }
+
+      // No user — proceed with Telegram login
       try {
         const res = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
         const data = await res.json()
@@ -88,9 +98,7 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
     }
 
     checkTelegram()
-
-    // Re-run when user manually logs out and comes back
-  }, [needsLogout])
+  }, [])
 
   async function upsertUser(tgUser: TelegramUser) {
     try {
@@ -204,6 +212,7 @@ export function logout() {
   const store = useAppStore.getState()
   store.setUser(null)
   store.setTelegramUser(null)
-  store.setNeedsLogout(true)
   store.setScreen('register')
+  // Clear persisted localStorage so TelegramGate re-auths fresh
+  localStorage.removeItem('useAppStore')
 }
