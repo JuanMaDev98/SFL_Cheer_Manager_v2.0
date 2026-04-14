@@ -43,29 +43,53 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
     setScreen('post-detail')
   }
 
+  const hasCookingPot = (post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && post.category !== 'cheer-x-cheer'
+
   return (
     <Card
-      className="rounded-2xl border-green-200 bg-white/90 backdrop-blur-sm shadow-sm cursor-pointer overflow-hidden transition-shadow duration-200 hover:shadow-md active:shadow-sm active:scale-[0.99] active:opacity-90"
+      className="rounded-xl border-green-200 bg-white/90 backdrop-blur-sm shadow-sm cursor-pointer overflow-hidden transition-shadow duration-200 hover:shadow-md active:shadow-sm active:scale-[0.99] active:opacity-90"
       onClick={handleOpen}
     >
-      <CardContent className="p-4">
-        {/* Top row: avatar + info + counter */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      <CardContent className="p-3 gap-2 flex flex-col">
+        {/* Top row: avatar + nickname + farmId + counter + badges */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Left: avatar + name */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <BumpkinAvatar
               avatarIndex={post.owner.avatarIndex}
-              nickname={!compact ? post.owner.nickname : undefined}
-              size="sm"
+              size="xs"
             />
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-green-900 truncate">
-                {post.owner.nickname}
-              </p>
-              <p className="text-[10px] text-green-600">
-                {t('general.farm', lang as Lang)} #{post.farmId}
-              </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-xs font-bold text-green-900 truncate">
+                  {post.owner.nickname}
+                </span>
+                <span className="text-[10px] text-green-500">
+                  #{post.farmId}
+                </span>
+                {/* Category badge */}
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
+                  {cat.emoji}
+                </span>
+                {/* Cooking pot icons — compact, no text */}
+                {hasCookingPot && (
+                  <div className="flex items-center gap-0.5">
+                    {post.hasBasicCookingPot && (
+                      <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                    )}
+                    {post.hasExpertCookingPot && (
+                      <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                    )}
+                    {post.hasAdvancedCookingPot && (
+                      <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Right: helper counter */}
           <HelperCounter
             helpersCount={post.helpersCount}
             helpersNeeded={post.helpersNeeded}
@@ -74,53 +98,30 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
           />
         </div>
 
-        {/* Title + category + cooking pot badge */}
-        <div className="mt-3 flex items-start gap-2">
-          <h3 className="text-base font-bold text-green-900 leading-tight flex-1">
-            {post.title}
-          </h3>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cat.badgeClass}`}>
-            {cat.emoji} {compact ? post.category : t(cat.labelKey, lang as Lang)} {cat.secondEmoji || cat.emoji}
-          </span>
-        </div>
+        {/* Title */}
+        <h3 className="text-sm font-bold text-green-900 leading-tight line-clamp-2">
+          {post.title}
+        </h3>
 
-        {/* Cooking Pot Badge — hidden for cheer-x-cheer (no food reward) */}
-        {(post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && post.category !== 'cheer-x-cheer' && (
-          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold text-green-600">
-              {lang === 'es' ? 'Cooking Pot activo' : 'Cooking Pot active'}
-            </span>
-            {post.hasBasicCookingPot && (
-              <img src="/assets/monuments/basic_cooking_pot.webp" alt="Basic" className="w-5 h-5 object-contain" />
-            )}
-            {post.hasExpertCookingPot && (
-              <img src="/assets/monuments/expert_cooking_pot.webp" alt="Expert" className="w-5 h-5 object-contain" />
-            )}
-            {post.hasAdvancedCookingPot && (
-              <img src="/assets/monuments/advanced_cooking_pot.webp" alt="Advanced" className="w-5 h-5 object-contain" />
-            )}
-          </div>
-        )}
-
-        {/* Message preview */}
-        {!compact && (
-          <p className="mt-1.5 text-sm text-green-700/80 line-clamp-2 leading-relaxed">
+        {/* Message preview — only if not compact */}
+        {!compact && post.message && (
+          <p className="text-xs text-green-700/70 line-clamp-1 leading-relaxed">
             {post.message}
           </p>
         )}
 
-        {/* Bottom row: time + join button */}
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-green-500">
-            <Clock className="w-3 h-3" />
+        {/* Bottom row: time + join */}
+        <div className="flex items-center justify-between mt-0.5">
+          <div className="flex items-center gap-1 text-[10px] text-green-400">
+            <Clock className="w-2.5 h-2.5" />
             <span>{timeAgo(post.createdAt, lang as Lang)}</span>
           </div>
           <Button
             size="sm"
-            className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 h-7 gap-1"
+            className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-[10px] font-semibold px-2 py-1 h-6 gap-1"
             onClick={handleJoin}
           >
-            <MessageCircle className="w-3.5 h-3.5" />
+            <MessageCircle className="w-2.5 h-2.5" />
             {t('feed.join', lang as Lang)}
           </Button>
         </div>
@@ -129,7 +130,5 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
   )
 }
 
-// Memoize to prevent re-renders when parent re-renders with same props
 const PostCard = memo(PostCardInner)
 export default PostCard
-

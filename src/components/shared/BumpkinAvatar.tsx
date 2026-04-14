@@ -13,7 +13,7 @@ const BG_COLORS = [
 interface BumpkinAvatarProps {
   avatarIndex?: number
   nickname?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   showRing?: boolean
 }
 
@@ -28,7 +28,8 @@ export default function BumpkinAvatar({
   const bgColor = BG_COLORS[idx]
 
   const sizeMap = {
-    sm: { container: 'w-8 h-8 text-base', ring: 'ring-2 ring-green-400', nick: 'text-[10px]' },
+    xs: {container: 'w-6 h-6 text-xs', ring: 'ring-1 ring-green-400', nick: 'text-[8px]'},
+    sm: {container: 'w-7 h-7 text-sm', ring: 'ring-2 ring-green-400', nick: 'text-[9px]'},
     md: { container: 'w-12 h-12 text-xl', ring: 'ring-2 ring-green-400', nick: 'text-xs' },
     lg: { container: 'w-20 h-20 text-3xl', ring: 'ring-3 ring-green-400', nick: 'text-sm' },
   }

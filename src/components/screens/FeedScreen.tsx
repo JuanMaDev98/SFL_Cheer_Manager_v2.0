@@ -167,7 +167,7 @@ export default function FeedScreen() {
 
           {/* Posts list — plain div, no AnimatePresence */}
           {initialized && posts.length > 0 && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
