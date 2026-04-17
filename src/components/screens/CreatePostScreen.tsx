@@ -12,6 +12,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import HelperCounter from '@/components/shared/HelperCounter'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import { categoryConfig } from '@/lib/categoryConfig'
 import type { Lang } from '@/lib/i18n'
 
@@ -150,6 +151,7 @@ export default function CreatePostScreen() {
               {t('create.title', lang as Lang)}
             </h1>
           </div>
+          <LanguageToggle />
         </div>
       </div>
 

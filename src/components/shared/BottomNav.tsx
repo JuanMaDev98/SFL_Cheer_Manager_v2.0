@@ -4,7 +4,6 @@ import { Home, FileText, User } from 'lucide-react'
 import { useAppStore, type Screen } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import type { Lang } from '@/lib/i18n'
-import LanguageToggle from './LanguageToggle'
 
 const tabs: { screen: Screen; icon: typeof Home; labelKey: string }[] = [
   { screen: 'feed', icon: Home, labelKey: 'nav.home' },
@@ -19,10 +18,8 @@ export default function BottomNav() {
     <div className="fixed bottom-0 left-0 right-0 z-40 safe-bottom">
       <div className="mx-auto max-w-md">
         <div className="flex items-end justify-between px-2 pb-1 pt-2">
-          {/* Language toggle */}
-          <LanguageToggle className="mb-0.5" />
-
-          {/* Tab items */}
+          {/* Spacer to balance layout */}
+          <div className="w-12" />
           <div className="flex items-center gap-1 rounded-2xl bg-white/90 backdrop-blur-md border border-green-200 px-3 py-1.5 shadow-lg">
             {tabs.map(({ screen: tabScreen, icon: Icon, labelKey }) => {
               const isActive = screen === tabScreen

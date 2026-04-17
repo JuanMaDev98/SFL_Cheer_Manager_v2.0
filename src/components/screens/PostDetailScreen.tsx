@@ -20,6 +20,7 @@ import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import HelperCounter from '@/components/shared/HelperCounter'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
 const categoryConfig: Record<string, { emoji: string; badgeClass: string; labelKey: string }> = {
@@ -238,6 +239,7 @@ export default function PostDetailScreen() {
               #{post.farmId}
             </p>
           </div>
+          <LanguageToggle />
           {isOwner && (
             <Button
               variant="ghost"

@@ -8,6 +8,7 @@ import { useAppStore, type PostFilter } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import PostCard from '@/components/shared/PostCard'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
 const filters: { key: PostFilter; labelKey: string }[] = [
@@ -107,6 +108,7 @@ export default function FeedScreen() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageToggle />
               <Button
                 variant="ghost"
                 size="sm"
