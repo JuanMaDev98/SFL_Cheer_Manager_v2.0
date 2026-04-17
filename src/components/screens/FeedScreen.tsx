@@ -19,12 +19,11 @@ const filters: { key: PostFilter; labelKey: string }[] = [
 ]
 
 export default function FeedScreen() {
-  const { posts, setPosts, filter, setFilter, lang, setScreen, isLoading, setLoading, setTotalPosts } = useAppStore()
+  const { posts, setPosts, filter, setFilter, lang, setScreen, setTotalPosts } = useAppStore()
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [initialized, setInitialized] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -51,24 +50,20 @@ export default function FeedScreen() {
     }
   }, [setPosts, setTotalPosts])
 
-  // Mark as mounted after first render (guards against StrictMode double-render)
-  useEffect(() => { setIsMounted(true) }, [])
-
   // Initial fetch
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      setLoading(true)
+      setIsLoading(true)
       setPage(1)
       await fetchPosts(1, filter, false)
       if (!cancelled) {
-        setLoading(false)
-        setInitialized(true)
+        setIsLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
-  }, [filter, fetchPosts, setLoading])
+  }, [filter, fetchPosts])
 
   // Auto-refresh every 30s (silent, no loading state)
   useEffect(() => {
@@ -155,24 +150,20 @@ export default function FeedScreen() {
       >
         <div className="max-w-md mx-auto pt-3">
           {/* First load: show spinner */}
-          {isLoading && (
+          {isLoading ? (
             <div className="flex justify-center py-16">
               <SunflowerSpinner />
             </div>
-          )}
-
-          {/* Empty state */}
-          {initialized && posts.length === 0 && (
+          ) : posts.length === 0 ? (
+            /* Empty state */
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="text-5xl">🌻</div>
               <p className="text-sm text-green-600 font-medium">
                 {t('feed.no-posts', lang as Lang)}
               </p>
             </div>
-          )}
-
-          {/* Posts list — plain div, no AnimatePresence */}
-          {initialized && posts.length > 0 && (
+          ) : (
+            /* Posts list */
             <div className="flex flex-col gap-2">
               {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
@@ -196,7 +187,7 @@ export default function FeedScreen() {
       </div>
 
       {/* FAB - Create Post */}
-      {initialized && (
+      {!isLoading && (
         <motion.div
           className="fixed bottom-20 right-4 z-30 max-w-md"
           initial={{ scale: 0 }}
