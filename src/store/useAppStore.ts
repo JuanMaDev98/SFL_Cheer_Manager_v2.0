@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export interface AdData {
+  id: string
+  textEs: string
+  textEn: string
+  buttonTextEs: string
+  buttonTextEn: string
+  buttonColor: string
+  link: string
+}
+
 export type Screen = 'link-telegram' | 'register' | 'feed' | 'post-detail' | 'create-post' | 'my-posts' | 'profile'
 export type PostFilter = 'all' | 'urgent' | 'almost-full' | 'cooking'
 export type Lang = 'es' | 'en'
@@ -116,6 +126,12 @@ interface AppState {
   lang: Lang
   setLang: (lang: Lang) => void
 
+  // Ad banner — persisted so ad doesn't change between screen navigations
+  currentAd: AdData | null
+  setCurrentAd: (ad: AdData | null) => void
+  isAdHidden: boolean
+  setAdHidden: (hidden: boolean) => void
+
   // Total count for pagination
   totalPosts: number
   setTotalPosts: (total: number) => void
@@ -179,6 +195,12 @@ export const useAppStore = create<AppState>()(
       // Language
       lang: 'es',
       setLang: (lang) => set({ lang }),
+
+      // Ad banner
+      currentAd: null,
+      setCurrentAd: (ad) => set({ currentAd: ad }),
+      isAdHidden: false,
+      setAdHidden: (hidden) => set({ isAdHidden: hidden }),
 
       // Total count
       totalPosts: 0,

@@ -52,6 +52,16 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
       setTelegramUser(tgUser)
 
+      // If stored Telegram user differs from current Telegram account, force re-login
+      if (user && user.telegramId && tgUser && String(user.telegramId) !== String(tgUser.id)) {
+        console.log('[TelegramGate] Different Telegram account detected, forcing re-login')
+        localStorage.removeItem('useAppStore')
+        setUser(null)
+        setTelegramUser(null)
+        window.location.reload()
+        return
+      }
+
       // If ghost user (exists but has no API key), clear and go to register
       if (user && !user.hasApiKey) {
         console.log('[TelegramGate] Ghost user detected (no API key), clearing and requiring re-login')
