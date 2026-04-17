@@ -9,6 +9,7 @@ import { t } from '@/lib/i18n'
 import PostCard from '@/components/shared/PostCard'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
+import AdBanner from '@/components/shared/AdBanner'
 import type { Lang } from '@/lib/i18n'
 
 const filters: { key: PostFilter; labelKey: string }[] = [
@@ -109,6 +110,8 @@ export default function FeedScreen() {
 
   return (
     <div className="flex flex-col min-h-screen safe-top">
+      {/* Ad Banner */}
+      <AdBanner scrollRef={scrollRef} />
       {/* Top Bar */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-green-100 px-4 pt-3 pb-2">
         <div className="max-w-md mx-auto">
