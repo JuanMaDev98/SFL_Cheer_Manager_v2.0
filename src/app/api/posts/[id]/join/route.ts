@@ -41,7 +41,7 @@ export async function POST(
       .eq('id', id)
       .single()
 
-    let updatedPost
+    let updatedPostWithHelpers
     if (post) {
       const newCount = post.helpersCount + 1
       const { data: updated } = await supabase
@@ -54,7 +54,7 @@ export async function POST(
         .select()
         .single()
 
-      updatedPost = updated
+      updatedPostWithHelpers = updated
     }
 
     // Update user stats
@@ -65,7 +65,26 @@ export async function POST(
       await supabase.rpc('increment_helpers_received', { user_id: post.ownerId })
     }
 
-    return NextResponse.json({ join, updatedPost })
+
+    // Get updated post with helpers
+    const { data: finalPost } = await supabase
+      .from('FarmPost')
+      .select(`
+        *,
+        owner:User(id, nickname, avatarIndex),
+        helpers:HelperJoin(
+          id,
+          userId,
+          status,
+          createdAt,
+          user:User(id, nickname, avatarIndex)
+        )
+      `)
+      .eq('id', id)
+      .single()
+
+
+    return NextResponse.json({ join, updatedPost: finalPost })
   } catch (error) {
     console.error('Error joining post:', error)
     return NextResponse.json({ error: 'Failed to join' }, { status: 500 })

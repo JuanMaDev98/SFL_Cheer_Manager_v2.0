@@ -1,6 +1,39 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+
+    const { data: post, error } = await supabase
+      .from('FarmPost')
+      .select(`
+        *,
+        owner:User(id, nickname, avatarIndex),
+        helpers:HelperJoin(
+          id,
+          userId,
+          status,
+          createdAt,
+          user:User(id, nickname, avatarIndex)
+        )
+      `)
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+
+    return NextResponse.json(post)
+  } catch (error) {
+    console.error('Error fetching post:', error)
+    return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 })
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

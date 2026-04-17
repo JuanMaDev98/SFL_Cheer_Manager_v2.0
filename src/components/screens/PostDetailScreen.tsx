@@ -117,11 +117,15 @@ export default function PostDetailScreen() {
         body: JSON.stringify({ userId: user.id }),
       })
       if (res.ok) {
+        const data = await res.json()
+        if (data.updatedPost) {
+          setCurrentPost(data.updatedPost)
+        } else {
+          fetchPost()
+        }
         haptic([50, 100, 50])
         setShowConfetti(true)
         setTimeout(() => setShowConfetti(false), 3500)
-        fetchPost()
-        fetchMessages()
       }
     } catch {
       haptic([100])
@@ -143,6 +147,7 @@ export default function PostDetailScreen() {
       })
       if (res.ok) {
         haptic([50, 100, 50])
+        // Refetch post to get updated helpers list
         fetchPost()
         fetchMessages()
       }
