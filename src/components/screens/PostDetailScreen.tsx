@@ -100,10 +100,7 @@ export default function PostDetailScreen() {
     }
   }, [fetchMessages, fetchPost])
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+
 
   // Handle join
   const handleJoin = async () => {
@@ -146,10 +143,13 @@ export default function PostDetailScreen() {
         body: JSON.stringify({ userId: user.id }),
       })
       if (res.ok) {
+        const data = await res.json()
+        if (data.updatedPost) {
+          setCurrentPost(data.updatedPost)
+        } else {
+          fetchPost()
+        }
         haptic([50, 100, 50])
-        // Refetch post to get updated helpers list
-        fetchPost()
-        fetchMessages()
       }
     } catch {
       haptic([100])

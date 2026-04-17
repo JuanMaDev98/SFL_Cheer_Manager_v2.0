@@ -20,7 +20,7 @@ export async function POST(
 
     // Check if helper record exists
     const { data: helper, error: findError } = await supabase
-      .from('PostHelper')
+      .from('HelperJoin')
       .select('id')
       .eq('postId', id)
       .eq('userId', userId)
@@ -32,7 +32,7 @@ export async function POST(
 
     // Delete helper record
     const { error: deleteError } = await supabase
-      .from('PostHelper')
+      .from('HelperJoin')
       .delete()
       .eq('id', helper.id)
 
@@ -41,13 +41,26 @@ export async function POST(
     }
 
     // Decrement helpersCount in Post
-    const { error: updateError } = await supabase.rpc('decrement_helpers_count', { post_id: id })
+    await supabase.rpc('decrement_helpers_count', { post_id: id })
 
-    if (updateError) {
-      console.error('[LeavePost] decrement_helpers_count error:', updateError)
-    }
+    // Return updated post with helpers
+    const { data: updatedPost } = await supabase
+      .from('FarmPost')
+      .select(`
+        *,
+        owner:User(id, nickname, avatarIndex),
+        helpers:HelperJoin(
+          id,
+          userId,
+          status,
+          createdAt,
+          user:User(id, nickname, avatarIndex)
+        )
+      `)
+      .eq('id', id)
+      .single()
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, updatedPost })
   } catch (err: any) {
     console.error('[LeavePost] Error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
