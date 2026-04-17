@@ -67,30 +67,23 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
                 <span className="text-[10px] text-green-500">
                   #{post.farmId}
                 </span>
-                {/* Category badge — show both emojis only for combo category (help-and-cheer) */}
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
-                  {cat.emoji}{cat.secondEmoji && post.category === 'help-and-cheer' ? ` ${cat.secondEmoji}` : ''}
+                {/* Category + cooking pot unified badge */}
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
+                  <span>{cat.emoji}{cat.secondEmoji && post.category === 'help-and-cheer' ? ` ${cat.secondEmoji}` : ''}</span>
+                  {hasCookingPot && (
+                    <span className="flex items-center gap-0.5">
+                      {post.hasBasicCookingPot && (
+                        <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-3.5 h-3.5 object-contain" />
+                      )}
+                      {post.hasExpertCookingPot && (
+                        <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-3.5 h-3.5 object-contain" />
+                      )}
+                      {post.hasAdvancedCookingPot && (
+                        <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-3.5 h-3.5 object-contain" />
+                      )}
+                    </span>
+                  )}
                 </span>
-                {/* Cooking pot icons — with colored badge background */}
-                {hasCookingPot && (
-                  <div className="flex items-center gap-0.5">
-                    {post.hasBasicCookingPot && (
-                      <span className="bg-yellow-50 rounded-full p-0.5" title="Basic Cooking Pot">
-                        <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
-                      </span>
-                    )}
-                    {post.hasExpertCookingPot && (
-                      <span className="bg-orange-50 rounded-full p-0.5" title="Expert Cooking Pot">
-                        <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
-                      </span>
-                    )}
-                    {post.hasAdvancedCookingPot && (
-                      <span className="bg-red-50 rounded-full p-0.5" title="Advanced Cooking Pot">
-                        <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
