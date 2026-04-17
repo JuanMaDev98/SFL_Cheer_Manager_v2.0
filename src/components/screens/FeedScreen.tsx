@@ -155,7 +155,7 @@ export default function FeedScreen() {
       >
         <div className="max-w-md mx-auto pt-3">
           {/* First load: show spinner */}
-          {!initialized && (
+          {isLoading && (
             <div className="flex justify-center py-16">
               <SunflowerSpinner />
             </div>
