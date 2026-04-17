@@ -54,6 +54,14 @@ const translations: Record<Lang, Record<string, string>> = {
     'detail.full': '¡Completo! Todos los helpers unidos 🎉',
     'detail.urgent': '¡Urgente! Pocos helpers restantes',
     'detail.owner-badge': '👑 Dueño',
+    'detail.take-btn': 'Tomar tarea',
+    'detail.leave-btn': 'Abandonar tarea',
+    'detail.cheer-farm-btn': 'Cheer Granja',
+    'detail.verify-cheer-btn': 'Verificar Cheer',
+    'detail.cupos-llenos': 'Cupos llenos',
+    'detail.verifying': 'Verificando...',
+    'detail.cheer-verified': '¡Cheer verificado! 🎉',
+    'detail.cheer-failed': 'No se pudo verificar el cheer. Asegúrate de haberlo dado correctamente o espera unos minutos.',
 
     // Create Post
     'create.title': 'Crear Post de Ayuda',
@@ -157,6 +165,14 @@ const translations: Record<Lang, Record<string, string>> = {
     'detail.full': 'Full! All helpers joined 🎉',
     'detail.urgent': 'Urgent! Few helpers remaining',
     'detail.owner-badge': '👑 Owner',
+    'detail.take-btn': 'Take task',
+    'detail.leave-btn': 'Leave task',
+    'detail.cheer-farm-btn': 'Cheer Farm',
+    'detail.verify-cheer-btn': 'Verify Cheer',
+    'detail.cupos-llenos': 'Slots full',
+    'detail.verifying': 'Verifying...',
+    'detail.cheer-verified': 'Cheer verified! 🎉',
+    'detail.cheer-failed': 'Could not verify cheer. Make sure you actually cheered the farm or wait a few minutes.',
 
     // Create Post
     'create.title': 'Create Help Post',

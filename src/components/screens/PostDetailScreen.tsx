@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ArrowLeft, Send, UserPlus, PartyPopper, Trash2, Edit3,
+  ArrowLeft, Send, UserPlus, UserMinus, Trash2, Edit3,
   MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -23,12 +23,7 @@ import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
-const categoryConfig: Record<string, { emoji: string; badgeClass: string; labelKey: string }> = {
-  cleaning: { emoji: '🧹', badgeClass: 'badge-cleaning', labelKey: 'create.cleaning' },
-  cooking: { emoji: '🍲', badgeClass: 'badge-cooking', labelKey: 'create.cooking' },
-  monument: { emoji: '⚡', badgeClass: 'badge-monument', labelKey: 'create.monument' },
-  fruit: { emoji: '💚', badgeClass: 'badge-fruit', labelKey: 'create.fruit' },
-}
+import { categoryConfig } from '@/lib/categoryConfig'
 
 const QUICK_EMOJIS = ['🌻', '🧹', '⚡', '💚', '🎉', '🤝', '💪']
 
@@ -55,6 +50,8 @@ export default function PostDetailScreen() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
+  const [isLeaving, setIsLeaving] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -64,7 +61,7 @@ export default function PostDetailScreen() {
   const isOwner = post?.ownerId === user?.id
   const hasJoined = post?.helpers?.some((h) => h.userId === user?.id)
   const isFull = post ? post.helpersCount >= post.helpersNeeded : false
-  const cat = post ? categoryConfig[post.category] || categoryConfig.cleaning : null
+  const cat = post ? categoryConfig[post.category] || categoryConfig['help-x-help'] : null
 
   const haptic = (pattern: number[]) => {
     try { navigator.vibrate?.(pattern) } catch {}
@@ -133,11 +130,64 @@ export default function PostDetailScreen() {
     }
   }
 
-  // Handle send cheer
-  const handleCheer = () => {
-    haptic([50, 100, 50])
-    setShowConfetti(true)
-    setTimeout(() => setShowConfetti(false), 3500)
+  // Handle leave task
+  const handleLeave = async () => {
+    if (!post || !user || !hasJoined) return
+    haptic([50])
+    setIsLeaving(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      })
+      if (res.ok) {
+        haptic([50, 100, 50])
+        fetchPost()
+        fetchMessages()
+      }
+    } catch {
+      haptic([100])
+    } finally {
+      setIsLeaving(false)
+    }
+  }
+
+  // Handle verify cheer
+  const handleVerifyCheer = async () => {
+    if (!post || !user) return
+    haptic([50])
+    setIsVerifying(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}/verify-cheer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      })
+      const data = await res.json()
+      if (data.verified) {
+        haptic([50, 100, 50])
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 3500)
+        fetchMessages()
+      } else {
+        haptic([100])
+        alert(data.message || (lang === 'es'
+          ? 'No se pudo verificar. Asegúrate de haber dado cheer correctamente.'
+          : 'Could not verify. Make sure you actually cheered this farm.'))
+      }
+    } catch {
+      haptic([100])
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  // Handle cheer link (open farm link)
+  const handleCheerLink = () => {
+    if (!post) return
+    const farmLink = `https://sunflower-land.com/play/#/visit/${post.farmId}`
+    window.open(farmLink, '_blank')
   }
 
   // Handle send message
@@ -357,32 +407,45 @@ export default function PostDetailScreen() {
               {/* Action buttons */}
               <div className="mt-4 flex flex-col gap-2">
                 {!isOwner && (
-                  <Button
-                    onClick={handleJoin}
-                    disabled={hasJoined || isFull || isJoining}
-                    className="w-full h-11 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-bold shadow-md disabled:opacity-60"
-                  >
-                    {hasJoined ? (
-                      <>
-                        <PartyPopper className="w-4 h-4 mr-2" />
-                        {t('detail.joined', lang as Lang)}
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        {isJoining ? t('general.loading', lang as Lang) : t('detail.join-btn', lang as Lang)}
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    {/* Tomar tarea / Abandonar tarea */}
+                    <Button
+                      onClick={hasJoined ? handleLeave : handleJoin}
+                      disabled={(!hasJoined && isFull) || isJoining || isLeaving || isVerifying}
+                      className={`w-full h-11 rounded-xl font-bold shadow-md disabled:opacity-60 ${
+                        hasJoined
+                          ? 'bg-gradient-to-r from-red-500 to-red-400 hover:from-red-600 hover:to-red-500 text-white'
+                          : 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white'
+                      }`}
+                    >
+                      {hasJoined ? (
+                        isLeaving ? t('general.loading', lang as Lang) : t('detail.leave-btn', lang as Lang)
+                      ) : (
+                        isJoining ? t('general.loading', lang as Lang) : t('detail.take-btn', lang as Lang)
+                      )}
+                    </Button>
+
+
+                    {/* Cheer Granja */}
+                    <Button
+                      onClick={handleCheerLink}
+                      variant="outline"
+                      className="w-full h-11 rounded-xl border-yellow-300 text-yellow-700 hover:bg-yellow-50 font-bold"
+                    >
+                      🌻 {t('detail.cheer-farm-btn', lang as Lang)}
+                    </Button>
+
+                    {/* Verificar Cheer */}
+                    <Button
+                      onClick={handleVerifyCheer}
+                      disabled={isJoining || isLeaving || isVerifying}
+                      variant="outline"
+                      className="w-full h-11 rounded-xl border-green-300 text-green-700 hover:bg-green-50 font-bold"
+                    >
+                      {isVerifying ? t('general.loading', lang as Lang) : t('detail.verify-cheer-btn', lang as Lang)}
+                    </Button>
+                  </>
                 )}
-                <Button
-                  onClick={handleCheer}
-                  variant="outline"
-                  className="w-full h-11 rounded-xl border-yellow-300 text-yellow-700 hover:bg-yellow-50 font-bold"
-                >
-                  <PartyPopper className="w-4 h-4 mr-2" />
-                  {t('detail.cheer-btn', lang as Lang)}
-                </Button>
               </div>
             </CardContent>
           </Card>
