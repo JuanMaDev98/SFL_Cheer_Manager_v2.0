@@ -1,14 +1,12 @@
 'use client'
 
 import { memo } from 'react'
-import { motion } from 'framer-motion'
 import { Clock, MessageCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAppStore, type FarmPost } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from './BumpkinAvatar'
-import HelperCounter from './HelperCounter'
 import { categoryConfig } from '@/lib/categoryConfig'
 import type { Lang } from '@/lib/i18n'
 
@@ -44,80 +42,75 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
   }
 
   const hasCookingPot = (post.hasBasicCookingPot || post.hasExpertCookingPot || post.hasAdvancedCookingPot) && post.category !== 'cheer-x-cheer'
+  const isFull = post.helpersCount >= post.helpersNeeded
 
   return (
     <Card
       className="rounded-xl border-green-200 bg-white/90 backdrop-blur-sm shadow-sm cursor-pointer overflow-hidden transition-shadow duration-200 hover:shadow-md active:shadow-sm active:scale-[0.99] active:opacity-90"
       onClick={handleOpen}
     >
-      <CardContent className="p-3 gap-2 flex flex-col">
-        {/* Top row: avatar + nickname + farmId + counter + badges */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: avatar + name */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+      <CardContent className="p-2 gap-1.5 flex flex-col">
+        {/* Top row: avatar + nickname + farmId + badges */}
+        <div className="flex items-start justify-between gap-1.5">
+          {/* Left: avatar + name + badges */}
+          <div className="flex items-start gap-1.5 min-w-0 flex-1">
             <BumpkinAvatar
               avatarIndex={post.owner.avatarIndex}
               size="xs"
             />
             <div className="min-w-0 flex-1">
+              {/* Name + farmId */}
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-xs font-bold text-green-900 truncate">
+                <span className="text-[11px] font-bold text-green-900 truncate">
                   {post.owner.nickname}
                 </span>
-                <span className="text-[10px] text-green-500">
+                <span className="text-[10px] text-green-400">
                   #{post.farmId}
                 </span>
-                {/* Category + cooking pot unified badge */}
-                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
-                  <span>{cat.emoji}{cat.secondEmoji && post.category === 'help-and-cheer' ? ` ${cat.secondEmoji}` : ''}</span>
-                  {hasCookingPot && (
-                    <span className="flex items-center gap-0.5">
-                      {post.hasBasicCookingPot && (
-                        <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-3.5 h-3.5 object-contain" />
-                      )}
-                      {post.hasExpertCookingPot && (
-                        <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-3.5 h-3.5 object-contain" />
-                      )}
-                      {post.hasAdvancedCookingPot && (
-                        <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-3.5 h-3.5 object-contain" />
-                      )}
-                    </span>
-                  )}
-                </span>
               </div>
+              {/* Category + cooking pot unified badge */}
+              <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
+                <span>{cat.emoji}{cat.secondEmoji && post.category === 'help-and-cheer' ? ` ${cat.secondEmoji}` : ''}</span>
+                {hasCookingPot && (
+                  <span className="flex items-center gap-0.5">
+                    {post.hasBasicCookingPot && (
+                      <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-3 h-3 object-contain" />
+                    )}
+                    {post.hasExpertCookingPot && (
+                      <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-3 h-3 object-contain" />
+                    )}
+                    {post.hasAdvancedCookingPot && (
+                      <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-3 h-3 object-contain" />
+                    )}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
 
-          {/* Right: helper counter */}
-          <HelperCounter
-            helpersCount={post.helpersCount}
-            helpersNeeded={post.helpersNeeded}
-            size="sm"
-            showLabel={false}
-          />
+          {/* Right: helpers count pill */}
+          <div className={`
+            flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full
+            ${isFull ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}
+          `}>
+            {post.helpersCount}/{post.helpersNeeded}
+          </div>
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-bold text-green-900 leading-tight line-clamp-2">
+        <h3 className="text-[13px] font-bold text-green-900 leading-tight line-clamp-2">
           {post.title}
         </h3>
 
-        {/* Message preview — only if not compact */}
-        {!compact && post.message && (
-          <p className="text-xs text-green-700/70 line-clamp-1 leading-relaxed">
-            {post.message}
-          </p>
-        )}
-
         {/* Bottom row: time + join */}
-        <div className="flex items-center justify-between mt-0.5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 text-[10px] text-green-400">
             <Clock className="w-2.5 h-2.5" />
             <span>{timeAgo(post.createdAt, lang as Lang)}</span>
           </div>
           <Button
             size="sm"
-            className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-[10px] font-semibold px-2 py-1 h-6 gap-1"
+            className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-[10px] font-semibold px-2 py-0.5 h-5 gap-1"
             onClick={handleJoin}
           >
             <MessageCircle className="w-2.5 h-2.5" />
