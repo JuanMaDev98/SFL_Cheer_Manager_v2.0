@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
-import type { Lang } from '@/lib/i18n'
 
 interface AdData {
   id: string
   textEs: string
   textEn: string
+  buttonTextEs: string
+  buttonTextEn: string
+  buttonColor: string
   link: string
 }
 
@@ -25,7 +27,6 @@ export default function AdBanner({ scrollRef, className = '' }: AdBannerProps) {
   const [currentAd, setCurrentAd] = useState<AdData | null>(null)
   const lastScrollY = useRef(0)
 
-  // Load random ad on mount
   useEffect(() => {
     const loadAd = async () => {
       try {
@@ -37,13 +38,12 @@ export default function AdBanner({ scrollRef, className = '' }: AdBannerProps) {
           setCurrentAd(randomAd)
         }
       } catch {
-        // Silently fail - banner stays hidden
+        // Silently fail
       }
     }
     loadAd()
   }, [])
 
-  // Scroll handling
   useEffect(() => {
     const handleScroll = () => {
       const currentY = scrollRef?.current
@@ -85,6 +85,7 @@ export default function AdBanner({ scrollRef, className = '' }: AdBannerProps) {
   if (isHidden || !currentAd) return null
 
   const adText = lang === 'es' ? currentAd.textEs : currentAd.textEn
+  const buttonText = lang === 'es' ? currentAd.buttonTextEs : currentAd.buttonTextEn
 
   return (
     <AnimatePresence>
@@ -94,31 +95,30 @@ export default function AdBanner({ scrollRef, className = '' }: AdBannerProps) {
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className={`overflow-hidden bg-gradient-to-r from-yellow-100 to-yellow-50 border-b border-yellow-200 ${className}`}
+          className={`overflow-hidden bg-gradient-to-r from-yellow-50 to-yellow-100 border-b border-yellow-200 ${className}`}
         >
-          <div
-            className="relative max-w-md mx-auto px-4 py-2 cursor-pointer"
-            onClick={handleAdClick}
-          >
+          <div className="relative max-w-sm mx-auto px-3 py-2">
             {/* Close button */}
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setIsHidden(true)
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-yellow-200/60 transition-colors z-10"
+              onClick={() => setIsHidden(true)}
+              className="absolute right-1 top-1 p-1 rounded-full hover:bg-yellow-200/60 transition-colors z-10"
             >
-              <X className="w-3.5 h-3.5 text-yellow-600" />
+              <X className="w-3 h-3 text-yellow-600" />
             </button>
 
-            {/* Ad content - clickable */}
-            <div className="flex items-center justify-center gap-2 py-1 pr-8">
-              <div className="bg-yellow-200/60 rounded px-4 py-1.5 text-center">
-                <span className="text-xs text-yellow-800 font-medium">
-                  {adText}
-                </span>
-              </div>
-            </div>
+            {/* Ad text */}
+            <p className="text-xs text-yellow-800 font-medium text-center mb-2 pr-5">
+              {adText}
+            </p>
+
+            {/* Button */}
+            <button
+              onClick={handleAdClick}
+              className="w-full py-1.5 rounded-lg text-xs font-bold text-white shadow-sm transition-transform active:scale-95"
+              style={{ backgroundColor: currentAd.buttonColor }}
+            >
+              {buttonText}
+            </button>
           </div>
         </motion.div>
       )}
