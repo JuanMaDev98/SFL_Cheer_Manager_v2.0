@@ -67,9 +67,9 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
                 <span className="text-[10px] text-green-500">
                   #{post.farmId}
                 </span>
-                {/* Category badge */}
+                {/* Category badge — shows both emojis for combo categories */}
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
-                  {cat.emoji}
+                  {cat.emoji}{cat.secondEmoji ? ` ${cat.secondEmoji}` : ''}
                 </span>
                 {/* Cooking pot icons — compact, no text */}
                 {hasCookingPot && (
