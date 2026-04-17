@@ -1,11 +1,10 @@
 'use client'
 
 import { memo } from 'react'
-import { Clock, MessageCircle } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAppStore, type FarmPost } from '@/store/useAppStore'
-import { t } from '@/lib/i18n'
 import BumpkinAvatar from './BumpkinAvatar'
 import HelperCounter from './HelperCounter'
 import { categoryConfig } from '@/lib/categoryConfig'
@@ -32,12 +31,6 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
   const cat = categoryConfig[post.category] || categoryConfig['help-x-help']
 
   const handleOpen = () => {
-    setCurrentPost(post)
-    setScreen('post-detail')
-  }
-
-  const handleJoin = (e: React.MouseEvent) => {
-    e.stopPropagation()
     setCurrentPost(post)
     setScreen('post-detail')
   }
@@ -105,20 +98,10 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
           {post.title}
         </h3>
 
-        {/* Bottom row: time + join */}
-        <div className="flex items-center justify-between px-2 pb-2 mt-0.5">
-          <div className="flex items-center gap-1 text-[10px] text-green-400">
-            <Clock className="w-2.5 h-2.5" />
-            <span>{timeAgo(post.createdAt, lang as Lang)}</span>
-          </div>
-          <Button
-            size="sm"
-            className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-[10px] font-semibold px-2 py-0.5 h-5 gap-1"
-            onClick={handleJoin}
-          >
-            <MessageCircle className="w-2.5 h-2.5" />
-            {t('feed.join', lang as Lang)}
-          </Button>
+        {/* Bottom row: time */}
+        <div className="flex items-center gap-1 text-[10px] text-green-400 px-2 pb-2">
+          <Clock className="w-2.5 h-2.5" />
+          <span>{timeAgo(post.createdAt, lang as Lang)}</span>
         </div>
       </CardContent>
     </Card>

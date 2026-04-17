@@ -66,11 +66,11 @@ export default function HelperCounter({
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`${text} font-bold`} style={{ color }}>
+          <span className={`${text} font-bold leading-none`} style={{ color }}>
             {helpersCount}
           </span>
           {size !== 'sm' && (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-[10px] text-gray-500 leading-none">
               /{helpersNeeded}
             </span>
           )}
