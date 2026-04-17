@@ -27,11 +27,17 @@ export default function FeedScreen() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Debug
+  const renderCount = useRef(0)
+  renderCount.current++
+  console.log(`[FeedScreen] render #${renderCount.current} isLoading=${isLoading} posts=${posts.length} filter=${filter}`)
+
   // Stable fetch that reads posts from ref to avoid dep loops
   const postsRef = useRef(posts)
   postsRef.current = posts
 
   const fetchPosts = useCallback(async (pageNum: number = 1, currentFilter: PostFilter = 'all', append: boolean = false) => {
+    console.log(`[FeedScreen] fetchPosts called page=${pageNum} filter=${currentFilter} append=${append}`)
     try {
       const res = await fetch(`/api/posts?filter=${currentFilter}&page=${pageNum}&limit=10`)
       if (!res.ok) throw new Error('Failed')
@@ -52,6 +58,7 @@ export default function FeedScreen() {
 
   // Initial fetch
   useEffect(() => {
+    console.log('[FeedScreen] useEffect initial fetch running')
     let cancelled = false
     const load = async () => {
       setIsLoading(true)
@@ -65,7 +72,7 @@ export default function FeedScreen() {
     return () => { cancelled = true }
   }, [filter, fetchPosts])
 
-  // Auto-refresh every 30s (silent, no loading state)
+  // Auto-refresh every 30s
   useEffect(() => {
     intervalRef.current = setInterval(async () => {
       await fetchPosts(1, filter, false)
