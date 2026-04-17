@@ -10,6 +10,7 @@ import { logout } from '@/components/shared/TelegramGate'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
+import AdBanner from '@/components/shared/AdBanner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
@@ -95,6 +96,8 @@ export default function ProfileScreen() {
           <LanguageToggle />
         </div>
       </div>
+
+      <AdBanner />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto scrollbar-farm px-4 pb-24">

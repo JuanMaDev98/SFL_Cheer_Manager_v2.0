@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { useAppStore, type FarmPost } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
+import AdBanner from '@/components/shared/AdBanner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import HelperCounter from '@/components/shared/HelperCounter'
@@ -114,6 +115,8 @@ export default function MyPostsScreen() {
           </div>
         </div>
       </div>
+
+      <AdBanner />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto scrollbar-farm px-4 pb-24">
