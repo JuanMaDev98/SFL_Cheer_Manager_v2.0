@@ -10,6 +10,7 @@ import { logout } from '@/components/shared/TelegramGate'
 import { t } from '@/lib/i18n'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
 export default function ProfileScreen() {
@@ -84,11 +85,14 @@ export default function ProfileScreen() {
     <div className="flex flex-col min-h-screen safe-top">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-green-100 px-4 py-3">
-        <div className="max-w-md mx-auto flex items-center gap-2">
-          <User className="w-5 h-5 text-green-600" />
-          <h1 className="text-lg font-bold text-green-900">
-            {t('profile.title', lang as Lang)}
-          </h1>
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <User className="w-5 h-5 text-green-600" />
+            <h1 className="text-lg font-bold text-green-900">
+              {t('profile.title', lang as Lang)}
+            </h1>
+          </div>
+          <LanguageToggle />
         </div>
       </div>
 

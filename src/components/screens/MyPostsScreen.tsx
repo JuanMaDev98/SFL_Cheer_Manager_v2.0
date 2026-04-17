@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { useAppStore, type FarmPost } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
+import LanguageToggle from '@/components/shared/LanguageToggle'
 import BumpkinAvatar from '@/components/shared/BumpkinAvatar'
 import HelperCounter from '@/components/shared/HelperCounter'
 import type { Lang } from '@/lib/i18n'
@@ -67,11 +68,14 @@ export default function MyPostsScreen() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-green-100 px-4 py-3">
         <div className="max-w-md mx-auto">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-5 h-5 text-green-600" />
-            <h1 className="text-lg font-bold text-green-900">
-              {t('myposts.title', lang as Lang)}
-            </h1>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-green-600" />
+              <h1 className="text-lg font-bold text-green-900">
+                {t('myposts.title', lang as Lang)}
+              </h1>
+            </div>
+            <LanguageToggle />
           </div>
 
           {/* Tabs */}
