@@ -69,11 +69,9 @@ export default function HelperCounter({
           <span className={`${text} font-bold leading-none`} style={{ color }}>
             {helpersCount}
           </span>
-          {size !== 'sm' && (
-            <span className="text-[10px] text-gray-500 leading-none">
-              /{helpersNeeded}
-            </span>
-          )}
+          <span className="text-[10px] text-gray-500 leading-none">
+            /{helpersNeeded}
+          </span>
         </div>
       </div>
       {showLabel && (

@@ -56,6 +56,8 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
                 <span className="text-xs font-bold text-green-900 truncate">
                   {post.owner.nickname}
                 </span>
+              </div>
+              <div className="flex items-center gap-1">
                 <span className="text-[10px] text-green-500">
                   #{post.farmId}
                 </span>
