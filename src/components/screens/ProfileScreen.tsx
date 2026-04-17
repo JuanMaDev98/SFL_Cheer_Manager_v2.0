@@ -84,6 +84,8 @@ export default function ProfileScreen() {
 
   return (
     <div className="flex flex-col min-h-screen safe-top">
+      <AdBanner />
+
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-green-100 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
@@ -96,8 +98,6 @@ export default function ProfileScreen() {
           <LanguageToggle />
         </div>
       </div>
-
-      <AdBanner />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto scrollbar-farm px-4 pb-24">
