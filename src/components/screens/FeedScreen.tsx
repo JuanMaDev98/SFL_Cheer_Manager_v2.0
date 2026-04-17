@@ -24,6 +24,7 @@ export default function FeedScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [initialized, setInitialized] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -49,6 +50,9 @@ export default function FeedScreen() {
       return false
     }
   }, [setPosts, setTotalPosts])
+
+  // Mark as mounted after first render (guards against StrictMode double-render)
+  useEffect(() => { setIsMounted(true) }, [])
 
   // Initial fetch
   useEffect(() => {
