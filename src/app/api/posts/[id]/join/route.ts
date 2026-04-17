@@ -13,10 +13,10 @@ export async function POST(
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
-    // Check if already joined
+    // Check if already joined (using HelperJoin table)
     const { data: existing } = await supabase
       .from('HelperJoin')
-      .select('*')
+      .select('id')
       .eq('postId', id)
       .eq('userId', userId)
       .maybeSingle()
@@ -25,7 +25,22 @@ export async function POST(
       return NextResponse.json({ error: 'Already joined' }, { status: 409 })
     }
 
-    // Create join
+    // Get post to check capacity
+    const { data: post } = await supabase
+      .from('FarmPost')
+      .select('helpersCount, helpersNeeded, ownerId')
+      .eq('id', id)
+      .single()
+
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    }
+
+    if (post.helpersCount >= post.helpersNeeded) {
+      return NextResponse.json({ error: 'Post is full' }, { status: 409 })
+    }
+
+    // Create join record
     const { data: join, error: joinError } = await supabase
       .from('HelperJoin')
       .insert({ postId: id, userId, status: 'joined' })
@@ -34,28 +49,14 @@ export async function POST(
 
     if (joinError) throw joinError
 
-    // Get current post to increment counter
-    const { data: post } = await supabase
+    // Increment helpersCount
+    await supabase
       .from('FarmPost')
-      .select('helpersCount, helpersNeeded, ownerId')
+      .update({
+        helpersCount: post.helpersCount + 1,
+        isActive: (post.helpersCount + 1) < post.helpersNeeded,
+      })
       .eq('id', id)
-      .single()
-
-    let updatedPostWithHelpers
-    if (post) {
-      const newCount = post.helpersCount + 1
-      const { data: updated } = await supabase
-        .from('FarmPost')
-        .update({
-          helpersCount: newCount,
-          isActive: newCount < post.helpersNeeded,
-        })
-        .eq('id', id)
-        .select()
-        .single()
-
-      updatedPostWithHelpers = updated
-    }
 
     // Update user stats
     if (userId) {
@@ -64,7 +65,6 @@ export async function POST(
     if (post?.ownerId) {
       await supabase.rpc('increment_helpers_received', { user_id: post.ownerId })
     }
-
 
     // Get updated post with helpers
     const { data: finalPost } = await supabase
@@ -82,7 +82,6 @@ export async function POST(
       `)
       .eq('id', id)
       .single()
-
 
     return NextResponse.json({ join, updatedPost: finalPost })
   } catch (error) {

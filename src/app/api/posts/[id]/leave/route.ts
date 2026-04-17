@@ -40,8 +40,19 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to leave task' }, { status: 500 })
     }
 
-    // Decrement helpersCount in Post
-    await supabase.rpc('decrement_helpers_count', { post_id: id })
+    // Decrement helpersCount directly (don't rely on RPC)
+    const { data: post } = await supabase
+      .from('FarmPost')
+      .select('helpersCount')
+      .eq('id', id)
+      .single()
+
+    if (post && post.helpersCount > 0) {
+      await supabase
+        .from('FarmPost')
+        .update({ helpersCount: post.helpersCount - 1, isActive: true })
+        .eq('id', id)
+    }
 
     // Return updated post with helpers
     const { data: updatedPost } = await supabase
