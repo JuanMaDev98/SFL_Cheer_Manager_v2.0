@@ -66,6 +66,10 @@ export interface UserProfile {
 }
 
 interface AppState {
+  // Hydration flag
+  _hasHydrated: boolean
+  setHasHydrated: (v: boolean) => void
+
   // Navigation
   screen: Screen
   previousScreen: Screen | null
@@ -120,6 +124,10 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      // Hydration
+      _hasHydrated: false,
+      setHasHydrated: (v: boolean) => set({ _hasHydrated: v }),
+
       // Navigation
       screen: 'register',
       previousScreen: null,
@@ -179,6 +187,9 @@ export const useAppStore = create<AppState>()(
     {
       name: 'sfl-storage',
       partialize: (state) => ({ needsLogout: state.needsLogout, screen: state.screen, user: state.user, lang: state.lang }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
     }
   )
 )

@@ -19,7 +19,7 @@ const filters: { key: PostFilter; labelKey: string }[] = [
 ]
 
 export default function FeedScreen() {
-  const { posts, setPosts, filter, setFilter, lang, setScreen, setTotalPosts } = useAppStore()
+  const { posts, setPosts, filter, setFilter, lang, setScreen, setTotalPosts, _hasHydrated } = useAppStore()
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -27,17 +27,11 @@ export default function FeedScreen() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Debug
-  const renderCount = useRef(0)
-  renderCount.current++
-  console.log(`[FeedScreen] render #${renderCount.current} isLoading=${isLoading} posts=${posts.length} filter=${filter}`)
-
   // Stable fetch that reads posts from ref to avoid dep loops
   const postsRef = useRef(posts)
   postsRef.current = posts
 
   const fetchPosts = useCallback(async (pageNum: number = 1, currentFilter: PostFilter = 'all', append: boolean = false) => {
-    console.log(`[FeedScreen] fetchPosts called page=${pageNum} filter=${currentFilter} append=${append}`)
     try {
       const res = await fetch(`/api/posts?filter=${currentFilter}&page=${pageNum}&limit=10`)
       if (!res.ok) throw new Error('Failed')
@@ -56,9 +50,10 @@ export default function FeedScreen() {
     }
   }, [setPosts, setTotalPosts])
 
-  // Initial fetch
+  // Initial fetch - only after hydration
   useEffect(() => {
-    console.log('[FeedScreen] useEffect initial fetch running')
+    if (!_hasHydrated) return
+
     let cancelled = false
     const load = async () => {
       setIsLoading(true)
@@ -70,7 +65,7 @@ export default function FeedScreen() {
     }
     load()
     return () => { cancelled = true }
-  }, [filter, fetchPosts])
+  }, [filter, fetchPosts, _hasHydrated])
 
   // Auto-refresh every 30s
   useEffect(() => {
@@ -99,6 +94,17 @@ export default function FeedScreen() {
     setPage(1)
     await fetchPosts(1, filter, false)
     setTimeout(() => setIsRefreshing(false), 600)
+  }
+
+  // Don't render anything until store has hydrated
+  if (!_hasHydrated) {
+    return (
+      <div className="flex flex-col min-h-screen safe-top">
+        <div className="flex items-center justify-center py-16">
+          <SunflowerSpinner />
+        </div>
+      </div>
+    )
   }
 
   return (
