@@ -1,0 +1,22 @@
+{
+  "ads": [
+    {
+      "id": "sunflower-land-play",
+      "textEs": "Juega Sunflower Land ahora!",
+      "textEn": "Play SunflowerLand now!",
+      "link": "https://sunflower-land.com/play/?ref=OMFCAT"
+    },
+    {
+      "id": "visit-farm",
+      "textEs": "Apoya este proyecto ayudando mi granja",
+      "textEn": "Support this project helping my farm",
+      "link": "https://sunflower-land.com/play/#/visit/5728332167996053"
+    },
+    {
+      "id": "support-project",
+      "textEs": "Si te fue útil la miniapp considera hacer una donación",
+      "textEn": "If this Miniapp was helpful consider making a donation",
+      "link": "https://polygonscan.com/address/0x2c8c8F919d086E041DF1c96b3C31CDe3c34bB640"
+    }
+  ]
+}
