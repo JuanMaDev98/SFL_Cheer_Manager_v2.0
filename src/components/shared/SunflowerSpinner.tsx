@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { t } from '@/lib/i18n'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -11,11 +10,6 @@ interface SunflowerSpinnerProps {
 
 export default function SunflowerSpinner({ loadingText, size = 'md' }: SunflowerSpinnerProps) {
   const lang = useAppStore((s) => s.lang)
-  const rendered = useRef(false)
-
-  // Guard against React StrictMode double-render
-  if (rendered.current) return null
-  rendered.current = true
 
   const sizeMap = {
     sm: { img: 40, text: 'text-xs' },
