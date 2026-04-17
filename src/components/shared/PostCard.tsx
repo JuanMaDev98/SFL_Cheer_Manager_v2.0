@@ -71,17 +71,23 @@ const PostCardInner = function PostCardInner({ post, compact = false }: PostCard
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cat.badgeClass}`}>
                   {cat.emoji}{cat.secondEmoji && post.category === 'help-and-cheer' ? ` ${cat.secondEmoji}` : ''}
                 </span>
-                {/* Cooking pot icons — compact, no text */}
+                {/* Cooking pot icons — with colored badge background */}
                 {hasCookingPot && (
                   <div className="flex items-center gap-0.5">
                     {post.hasBasicCookingPot && (
-                      <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                      <span className="bg-yellow-50 rounded-full p-0.5" title="Basic Cooking Pot">
+                        <img src="/assets/monuments/basic_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                      </span>
                     )}
                     {post.hasExpertCookingPot && (
-                      <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                      <span className="bg-orange-50 rounded-full p-0.5" title="Expert Cooking Pot">
+                        <img src="/assets/monuments/expert_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                      </span>
                     )}
                     {post.hasAdvancedCookingPot && (
-                      <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                      <span className="bg-red-50 rounded-full p-0.5" title="Advanced Cooking Pot">
+                        <img src="/assets/monuments/advanced_cooking_pot.webp" alt="" className="w-4 h-4 object-contain" />
+                      </span>
                     )}
                   </div>
                 )}
