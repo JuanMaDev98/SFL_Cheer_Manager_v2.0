@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, RefreshCw, Sprout, LogOut } from 'lucide-react'
+import { Plus, RefreshCw, Sprout } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore, type PostFilter } from '@/store/useAppStore'
 import { t } from '@/lib/i18n'
@@ -10,7 +10,7 @@ import PostCard from '@/components/shared/PostCard'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import AdBanner from '@/components/shared/AdBanner'
-import { logout } from '@/components/shared/TelegramGate'
+
 import type { Lang } from '@/lib/i18n'
 
 const filters: { key: PostFilter; labelKey: string }[] = [
@@ -98,11 +98,6 @@ export default function FeedScreen() {
     setTimeout(() => setIsRefreshing(false), 600)
   }
 
-  const handleLogout = () => {
-    try { navigator.vibrate?.([50]) } catch {}
-    logout()
-  }
-
   // Don't render anything until store has hydrated
   if (!_hasHydrated) {
     return (
@@ -134,19 +129,10 @@ export default function FeedScreen() {
                 variant="ghost"
                 size="sm"
                 onClick={handleRefresh}
-                className="rounded-lg h-8 w-8 p-0 hover:bg-green-100"
+                className="rounded-lg h-8 w-8 p-0 hover:bg-green-100 ml-1"
                 title="Refresh"
               >
                 <RefreshCw className={`w-4 h-4 text-green-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="rounded-lg h-8 w-8 p-0 hover:bg-red-100"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4 text-red-500" />
               </Button>
             </div>
           </div>
