@@ -10,7 +10,6 @@ import PostCard from '@/components/shared/PostCard'
 import SunflowerSpinner from '@/components/shared/SunflowerSpinner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import AdBanner from '@/components/shared/AdBanner'
-
 import type { Lang } from '@/lib/i18n'
 
 const filters: { key: PostFilter; labelKey: string }[] = [
@@ -123,7 +122,19 @@ export default function FeedScreen() {
                 {t('feed.title', lang as Lang)}
               </h1>
             </div>
-        </div>
+            <div className="flex items-center gap-2">
+              <LanguageToggle />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                className="rounded-lg h-8 w-8 p-0 hover:bg-green-100"
+                title="Refresh"
+              >
+                <RefreshCw className={`w-4 h-4 text-green-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
 
         {/* Filter chips */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">

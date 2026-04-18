@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Send, UserPlus, UserMinus, Trash2, Edit3,
-  MessageCircle
+  MessageCircle, RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -101,6 +101,10 @@ export default function PostDetailScreen() {
   }, [fetchMessages, fetchPost])
 
 
+  const handleRefresh = async () => {
+    try { navigator.vibrate?.([30]) } catch {}
+    await Promise.all([fetchMessages(), fetchPost()])
+  }
 
   // Handle join
   const handleJoin = async () => {
@@ -295,6 +299,15 @@ export default function PostDetailScreen() {
             </p>
           </div>
           <LanguageToggle />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            className="rounded-xl h-9 w-9 p-0 hover:bg-green-100"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4 text-green-600" />
+          </Button>
           {isOwner && (
             <Button
               variant="ghost"
