@@ -43,7 +43,7 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
       })
 
       const tgUser = tg.initDataUnsafe?.user as TelegramUser | undefined
-      console.log('[TelegramGate] User from Telegram:', tgUser)
+      console.log('[TelegramGate] User:', tgUser)
 
       if (!tgUser) {
         setReady(true)
@@ -52,41 +52,47 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
 
       setTelegramUser(tgUser)
 
-      // ALWAYS look up user from DB by telegramId — no localStorage dependency
-      // This ensures each Telegram account loads its own data regardless of shared localStorage
+      // If stored Telegram user differs from current Telegram account, force re-login
+      if (user && user.telegramId && tgUser && String(user.telegramId) !== String(tgUser.id)) {
+        console.log('[TelegramGate] Different Telegram account detected, forcing re-login')
+        localStorage.removeItem('useAppStore')
+        setUser(null)
+        setTelegramUser(null)
+        window.location.reload()
+        return
+      }
+
+      // If ghost user (exists but has no API key), clear and go to register
+      if (user && !user.hasApiKey) {
+        console.log('[TelegramGate] Ghost user detected (no API key), clearing and requiring re-login')
+        localStorage.removeItem('useAppStore')
+        setScreen('register')
+        setReady(true)
+        return
+      }
+
+      // If valid user already exists, skip auto-login
+      if (user && user.hasApiKey) {
+        console.log('[TelegramGate] Valid user exists, skipping auto-login')
+        setReady(true)
+        return
+      }
+
+      // No user — proceed with Telegram login
       try {
-        const lookupRes = await fetch(`/api/users?telegramId=${tgUser.id}`)
-        console.log('[TelegramGate] DB lookup for telegramId:', tgUser.id, '-> status:', lookupRes.status)
+        const res = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
+        const data = await res.json()
+        console.log('[TelegramGate] Subscription:', data)
 
-        if (lookupRes.ok) {
-          const existingUser = await lookupRes.json()
-          console.log('[TelegramGate] Found user in DB:', existingUser?.nickname)
-
-          // User exists in DB — load them and skip auto-login
-          if (existingUser && existingUser.playerId) {
-            setUser(existingUser)
-            setScreen('feed')
-            setReady(true)
-            return
-          }
-        } else if (lookupRes.status === 404) {
-          console.log('[TelegramGate] No user found for this Telegram account — will create new')
-        }
-
-        // 404 or no playerId → proceed with subscription check then registration
-        const subRes = await fetch(`/api/telegram/check-subscription?userId=${tgUser.id}`)
-        const subData = await subRes.json()
-        console.log('[TelegramGate] Subscription:', subData)
-
-        if (!subData.subscriptions) {
-          setError(subData.error || 'Error checking subscriptions')
+        if (!data.subscriptions) {
+          setError(data.error || 'Error checking subscriptions')
           setReady(true)
           return
         }
 
-        setSubscriptions(subData.subscriptions)
+        setSubscriptions(data.subscriptions)
 
-        if (!subData.allPassed) {
+        if (!data.allPassed) {
           setNeedsSubscription(true)
           setReady(true)
           return
@@ -195,7 +201,7 @@ export default function TelegramGate({ children }: { children: React.ReactNode }
         </div>
 
         <p className="text-green-500 text-xs mt-6">
-          Una vez joined, esperá y tocá "Verificar"
+          Una vez unido, esperá y tocá "Verificar"
         </p>
 
         <button

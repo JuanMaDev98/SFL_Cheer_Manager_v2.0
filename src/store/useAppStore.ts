@@ -208,7 +208,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'sfl-storage',
-      partialize: (state) => ({ needsLogout: state.needsLogout, screen: state.screen, lang: state.lang, currentAd: state.currentAd, isAdHidden: state.isAdHidden }),
+      partialize: (state) => ({ needsLogout: state.needsLogout, screen: state.screen, user: state.user, lang: state.lang }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true)
       },
