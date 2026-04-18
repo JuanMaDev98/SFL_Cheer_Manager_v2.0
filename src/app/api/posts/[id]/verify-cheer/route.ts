@@ -123,7 +123,9 @@ export async function POST(
     debugLog.farmsList = farmsList
     debugLog.ownerFarmId = ownerFarmIdStr
     debugLog.foundInFarms = foundInFarms
-
+    debugLog.farmsListTypes = farmsList.map(f => typeof f)
+    debugLog.ownerFarmIdType = typeof ownerFarmIdStr
+    console.log('[VerifyCheer] Debug:', JSON.stringify(debugLog, null, 2))
     if (!foundInFarms) {
       return NextResponse.json({
         verified: false,
