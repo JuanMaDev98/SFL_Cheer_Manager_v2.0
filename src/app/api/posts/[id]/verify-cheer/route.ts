@@ -114,18 +114,6 @@ export async function POST(
 
     debugLog.cheersGiven = cheersGiven
 
-    // Check date is today
-    const today = new Date().toISOString().split('T')[0]
-    const cheerDate = cheersGiven.date || ''
-
-    if (cheerDate !== today) {
-      return NextResponse.json({
-        verified: false,
-        reason: 'no_cheer_today',
-        message: 'No cheer found for today. Make sure you actually cheered today!',
-      })
-    }
-
     // Check if owner's farmId is in the farms list
     const farmsList: string[] = cheersGiven.farms || []
     const ownerFarmIdStr = String(post.farmId)
