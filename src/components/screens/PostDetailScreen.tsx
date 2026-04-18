@@ -448,7 +448,8 @@ export default function PostDetailScreen() {
                     <Button
                       onClick={handleCheerLink}
                       variant="outline"
-                      className="w-full h-11 rounded-xl border-yellow-300 text-yellow-700 hover:bg-yellow-50 font-bold"
+                      disabled={!hasJoined}
+                      className="w-full h-11 rounded-xl border-yellow-300 text-yellow-700 hover:bg-yellow-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       🌻 {t('detail.cheer-farm-btn', lang as Lang)}
                     </Button>
@@ -456,9 +457,9 @@ export default function PostDetailScreen() {
                     {/* Verificar Cheer */}
                     <Button
                       onClick={handleVerifyCheer}
-                      disabled={isJoining || isLeaving || isVerifying}
+                      disabled={!hasJoined || isJoining || isLeaving || isVerifying}
                       variant="outline"
-                      className="w-full h-11 rounded-xl border-green-300 text-green-700 hover:bg-green-50 font-bold"
+                      className="w-full h-11 rounded-xl border-green-300 text-green-700 hover:bg-green-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isVerifying ? t('general.loading', lang as Lang) : t('detail.verify-cheer-btn', lang as Lang)}
                     </Button>
