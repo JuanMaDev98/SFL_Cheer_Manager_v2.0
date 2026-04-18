@@ -123,21 +123,9 @@ export default function FeedScreen() {
                 {t('feed.title', lang as Lang)}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                className="rounded-lg h-8 w-8 p-0 hover:bg-green-100 ml-1"
-                title="Refresh"
-              >
-                <RefreshCw className={`w-4 h-4 text-green-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
+        </div>
 
-          {/* Filter chips */}
+        {/* Filter chips */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {filters.map(({ key, labelKey }) => (
               <motion.button
