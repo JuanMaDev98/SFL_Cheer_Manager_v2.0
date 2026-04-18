@@ -105,8 +105,9 @@ export async function POST(
     const data = await sflRes.json()
     debugLog.sflOk = true
 
-    // Get cheersGiven data
-    const cheersGiven = data.farm?.celebrations?.cheersGiven
+    // Get cheersGiven data — path: farm.socialFarming.cheersGiven
+    const cheersGiven = data.farm?.socialFarming?.cheersGiven
+      || data.farm?.celebrations?.cheersGiven
       || data.celebrations?.cheersGiven
       || data.cheersGiven
       || {}
