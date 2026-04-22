@@ -216,12 +216,27 @@ export default function PostDetailScreen() {
           content: content.trim(),
         }),
       })
-      if (res.ok) {
-        const msg = await res.json()
-        addMessage(msg)
-        setChatInput('')
+
+      // If non-JSON response (e.g., Vercel error page on timeout), show error
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.includes('application/json')) {
+        console.error('[SendMessage] Non-JSON response from API:', res.status)
+        alert(lang === 'es' ? 'Error enviando mensaje. Intenta de nuevo.' : 'Error sending message. Try again.')
+        setIsSending(false)
+        return
       }
-    } catch {} finally {
+
+      const data = await res.json()
+      if (res.ok && data?.id) {
+        addMessage(data)
+        setChatInput('')
+      } else {
+        alert(data?.error || (lang === 'es' ? 'Error enviando mensaje.' : 'Error sending message.'))
+      }
+    } catch (err) {
+      console.error('[SendMessage] Fetch error:', err)
+      alert(lang === 'es' ? 'Error de conexión. Intenta de nuevo.' : 'Connection error. Try again.')
+    } finally {
       setIsSending(false)
       inputRef.current?.focus()
     }
