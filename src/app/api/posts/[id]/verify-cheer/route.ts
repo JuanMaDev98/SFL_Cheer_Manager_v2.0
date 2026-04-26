@@ -67,7 +67,7 @@ export async function POST(
     // Fetch post to get ownerFarmId
     console.log('[VerifyCheer] Fetching post from DB...')
     const { data: post, error: postError } = await supabase
-      .from('Post')
+      .from('FarmPost')
       .select('id, ownerId, farmId, title')
       .eq('id', id)
       .maybeSingle()
