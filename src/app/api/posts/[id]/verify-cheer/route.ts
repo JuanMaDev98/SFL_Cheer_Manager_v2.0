@@ -31,7 +31,6 @@ async function fetchWithRetry(
 
       let data
       try { data = await res.json() } catch { data = null }
-
       return { ok: res.ok, status: res.status, data }
     } catch (err: any) {
       console.error(`[VerifyCheer] Fetch attempt ${attempt} failed:`, err.message)
@@ -68,16 +67,13 @@ async function sendTelegramDM(chatId: string, text: string): Promise<boolean> {
  * Called by helper AFTER they have cheered the owner's farm.
  * Updates HelperJoin status to 'cheered' and notifies owner via Telegram DM.
  */
-function getLang(request: Request): string {
-  const acceptLang = request.headers.get('accept-language') || ''
-  return acceptLang.includes('es') ? 'es' : 'en'
-}
-
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const lang = getLang(request)
+  const acceptLang = request.headers.get('accept-language') || ''
+  const lang = acceptLang.includes('es') ? 'es' : 'en'
+
   console.log('[VerifyCheer] ===== START REQUEST =====')
   console.log('[VerifyCheer] Timestamp:', new Date().toISOString())
   console.log('[VerifyCheer] Lang:', lang)
@@ -218,7 +214,7 @@ export async function POST(
     }
 
     // ===== SUCCESS: Mark as cheered =====
-    console.log('[VerifyCheer] SUCCESS! Updating HelperJoin to 'cheered'...')
+    console.log('[VerifyCheer] SUCCESS! Updating HelperJoin to "cheered"...')
 
     // Update HelperJoin status
     const { error: updateError } = await supabase
@@ -255,7 +251,7 @@ export async function POST(
     // Send Telegram DM to post owner
     if (owner?.telegramId) {
       const farmLink = `https://sunflower-land.com/play/#/visit/${helper.playerId}`
-      const dmText = `🎉 <b>@{helper.nickname}</b> sent you a cheer!\n\n` +
+      const dmText = `🎉 <b>@${helper.nickname}</b> sent you a cheer!\n\n` +
         `They helped with: <b>${post.title}</b>\n\n` +
         `Return the cheer 👇\n${farmLink}\n\n` +
         `Once you cheer them back, use "Verify Return" in the app to complete the exchange!`
@@ -281,6 +277,3 @@ export async function POST(
     console.log('[VerifyCheer] ===== END REQUEST =====')
   }
 }
-
-// Need lang - we'll detect from Accept-Language header or default to en
-var lang = 'en'
