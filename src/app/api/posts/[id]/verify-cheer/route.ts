@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { decrypt, isValidSflApiKey } from '@/lib/encryption'
 
 const SFL_API_BASE = 'https://api.sunflower-land.com/community/farms'
+// Token del bot de JuanMa — configurado en Vercel Environment Variables
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 
 /**
