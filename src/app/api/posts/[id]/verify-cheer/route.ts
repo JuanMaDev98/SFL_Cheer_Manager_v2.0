@@ -11,16 +11,15 @@ async function fetchWithRetry(
   url: string,
   options: RequestInit,
   retries = 3,
-  baseDelay = 1000
+  baseDelay = 1500
 ): Promise<{ ok: boolean; status: number; data?: any }> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(10000), // 10s timeout
+        signal: AbortSignal.timeout(10000),
       })
 
-      // If rate limited (429), retry with backoff
       if (res.status === 429) {
         const delay = baseDelay * Math.pow(2, attempt - 1)
         console.log(`[VerifyCheer] Rate limited (429), retrying in ${delay}ms (attempt ${attempt}/${retries})`)
@@ -29,20 +28,13 @@ async function fetchWithRetry(
       }
 
       let data
-      try {
-        data = await res.json()
-      } catch {
-        data = null
-      }
+      try { data = await res.json() } catch { data = null }
 
       return { ok: res.ok, status: res.status, data }
     } catch (err: any) {
       console.error(`[VerifyCheer] Fetch attempt ${attempt} failed:`, err.message)
-      if (attempt === retries) {
-        return { ok: false, status: 0, data: null }
-      }
-      const delay = baseDelay * Math.pow(2, attempt - 1)
-      await new Promise(resolve => setTimeout(resolve, delay))
+      if (attempt === retries) return { ok: false, status: 0, data: null }
+      await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt - 1)))
     }
   }
   return { ok: false, status: 0, data: null }
@@ -51,55 +43,67 @@ async function fetchWithRetry(
 /**
  * POST /api/posts/[id]/verify-cheer
  * Verifies if the current user has given a cheer to the post owner's farm
- * Uses the user's API key to call SFL API and check cheersGiven data
  */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const debugLog: Record<string, any> = { timestamp: new Date().toISOString() }
+  console.log('[VerifyCheer] ===== START REQUEST =====')
+  console.log('[VerifyCheer] Timestamp:', new Date().toISOString())
 
   try {
     const { id } = await params
     const body = await request.json()
     const { userId } = body
 
+    console.log('[VerifyCheer] Post ID:', id)
+    console.log('[VerifyCheer] User ID making request:', userId)
+
     if (!userId) {
+      console.log('[VerifyCheer] ERROR: userId missing')
       return NextResponse.json({ error: 'userId required' }, { status: 400 })
     }
 
-    debugLog.postId = id
-    debugLog.userId = userId
-
     // Fetch post to get ownerFarmId
+    console.log('[VerifyCheer] Fetching post from DB...')
     const { data: post, error: postError } = await supabase
       .from('Post')
       .select('id, ownerId, farmId, title')
       .eq('id', id)
       .maybeSingle()
 
+    console.log('[VerifyCheer] Post query result:', { post, postError })
+
     if (postError || !post) {
+      console.log('[VerifyCheer] ERROR: Post not found')
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
 
-    debugLog.ownerFarmId = post.farmId
-    debugLog.postOwnerId = post.ownerId
+    console.log('[VerifyCheer] Post found:', {
+      postId: post.id,
+      ownerId: post.ownerId,
+      farmId: post.farmId,
+      farmIdType: typeof post.farmId,
+      title: post.title
+    })
 
     // Fetch user with encrypted API key
+    console.log('[VerifyCheer] Fetching user from DB...')
     const { data: user, error: userError } = await supabase
       .from('User')
-      .select('playerId, encryptedApiKey, nickname')
+      .select('id, playerId, encryptedApiKey, nickname')
       .eq('id', userId)
       .maybeSingle()
 
+    console.log('[VerifyCheer] User query result:', { userId: user?.id, playerId: user?.playerId, nickname: user?.nickname, hasApiKey: !!user?.encryptedApiKey, userError })
+
     if (userError || !user) {
+      console.log('[VerifyCheer] ERROR: User not found in DB')
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    debugLog.playerId = user.playerId
-    debugLog.hasApiKey = !!user.encryptedApiKey
-
     if (!user.encryptedApiKey) {
+      console.log('[VerifyCheer] ERROR: User has no API key stored')
       return NextResponse.json({
         verified: false,
         reason: 'no_api_key',
@@ -108,11 +112,13 @@ export async function POST(
     }
 
     // Decrypt API key
+    console.log('[VerifyCheer] Decrypting API key...')
     let apiKey: string
     try {
       apiKey = decrypt(user.encryptedApiKey)
-      debugLog.decryptOk = true
-    } catch {
+      console.log('[VerifyCheer] Decrypt OK, API key starts with:', apiKey.substring(0, 10) + '...')
+    } catch (err) {
+      console.log('[VerifyCheer] ERROR: Decrypt failed:', err)
       return NextResponse.json({
         verified: false,
         reason: 'decrypt_failed',
@@ -121,6 +127,7 @@ export async function POST(
     }
 
     if (!isValidSflApiKey(apiKey)) {
+      console.log('[VerifyCheer] ERROR: Invalid API key format')
       return NextResponse.json({
         verified: false,
         reason: 'invalid_key',
@@ -128,24 +135,25 @@ export async function POST(
       })
     }
 
-    // Call SFL API with retry logic
+    // Call SFL API
+    console.log('[VerifyCheer] Calling SFL API:', `${SFL_API_BASE}/${user.playerId}`)
+    console.log('[VerifyCheer] Using playerId:', user.playerId, 'type:', typeof user.playerId)
+    
     const sflResult = await fetchWithRetry(
       `${SFL_API_BASE}/${user.playerId}`,
-      {
-        headers: {
-          'X-API-Key': apiKey,
-          Accept: 'application/json',
-        },
-      },
-      3, // 3 retries
-      1500 // 1.5s base delay
+      { headers: { 'X-API-Key': apiKey, Accept: 'application/json' } },
+      3,
+      1500
     )
 
-    debugLog.sflStatus = sflResult.status
-    debugLog.sflOk = sflResult.ok
+    console.log('[VerifyCheer] SFL API result:', {
+      ok: sflResult.ok,
+      status: sflResult.status,
+      hasData: !!sflResult.data
+    })
 
     if (!sflResult.ok) {
-      // Provide specific error messages based on status
+      console.log('[VerifyCheer] ERROR: SFL API request failed')
       let message = 'Could not verify with Sunflower Land API. Try again in a few minutes.'
       let reason = 'sfl_api_error'
 
@@ -157,50 +165,76 @@ export async function POST(
         reason = 'timeout'
       }
 
-      return NextResponse.json({
-        verified: false,
-        reason,
-        message,
-      })
+      return NextResponse.json({ verified: false, reason, message })
     }
 
     const data = sflResult.data
 
-    // Get cheersGiven data — path: farm.socialFarming.cheersGiven
-    const cheersGiven = data.farm?.socialFarming?.cheersGiven
-      || data.farm?.celebrations?.cheersGiven
-      || data.celebrations?.cheersGiven
-      || data.cheersGiven
-      || {}
+    // Log FULL SFL response for debugging
+    console.log('[VerifyCheer] ===== SFL API RAW RESPONSE =====')
+    console.log('[VerifyCheer] SFL response keys:', Object.keys(data || {}))
+    console.log('[VerifyCheer] data.id:', data?.id)
+    console.log('[VerifyCheer] data.playerId:', data?.playerId)
+    console.log('[VerifyCheer] data.farm:', data?.farm ? Object.keys(data.farm) : 'undefined')
+    console.log('[VerifyCheer] data.celebrations:', data?.celebrations ? Object.keys(data.celebrations) : 'undefined')
+    console.log('[VerifyCheer] ===== END SFL RAW RESPONSE =====')
 
-    debugLog.cheersGiven = cheersGiven
+    // Get cheersGiven data - try ALL possible paths
+    const cheersGiven =
+      data.farm?.socialFarming?.cheersGiven ||
+      data.farm?.celebrations?.cheersGiven ||
+      data.celebrations?.cheersGiven ||
+      data.cheersGiven ||
+      {}
 
-    // Check if owner's farmId is in the farms list
+    console.log('[VerifyCheer] ===== CHEERS GIVEN EXTRACTION =====')
+    console.log('[VerifyCheer] cheersGiven:', JSON.stringify(cheersGiven))
+    console.log('[VerifyCheer] cheersGiven.farms:', cheersGiven.farms)
+    console.log('[VerifyCheer] cheersGiven.projects:', cheersGiven.projects)
+    console.log('[VerifyCheer] cheersGiven.date:', cheersGiven.date)
+    console.log('[VerifyCheer] ===== END CHEERS GIVEN =====')
+
     const farmsList: string[] = cheersGiven.farms || []
     const ownerFarmIdStr = String(post.farmId)
 
+    console.log('[VerifyCheer] ===== VERIFICATION CHECK =====')
+    console.log('[VerifyCheer] Post farmId:', post.farmId, 'type:', typeof post.farmId)
+    console.log('[VerifyCheer] Owner farmId as string:', ownerFarmIdStr)
+    console.log('[VerifyCheer] Farms list from API:', farmsList)
+    console.log('[VerifyCheer] Farms list types:', farmsList.map(f => typeof f))
+    console.log('[VerifyCheer] Farms list as strings:', farmsList.map(f => String(f)))
+    console.log('[VerifyCheer] ===== RUNNING COMPARISONS =====')
+    
+    // Check each farm in the list
+    for (const farmId of farmsList) {
+      console.log(`[VerifyCheer] Comparing: '${farmId}' (${typeof farmId}) === '${ownerFarmIdStr}' (${typeof ownerFarmIdStr}) => ${String(farmId) === ownerFarmIdStr}`)
+    }
+    
     const foundInFarms = farmsList.some(farmId => String(farmId) === ownerFarmIdStr)
-
-    debugLog.farmsList = farmsList
-    debugLog.ownerFarmId = ownerFarmIdStr
-    debugLog.foundInFarms = foundInFarms
+    console.log('[VerifyCheer] Final foundInFarms result:', foundInFarms)
+    console.log('[VerifyCheer] ===== END VERIFICATION CHECK =====')
 
     if (!foundInFarms) {
+      console.log('[VerifyCheer] FAIL: Farm not found in cheersGiven.farms')
       return NextResponse.json({
         verified: false,
         reason: 'cheer_wrong_farm',
         message: `Cheer not found for this farm. You cheered ${farmsList.length} farms today but not this one. Make sure you cheered the correct farm and wait ~1 minute before trying again.`,
         debug: {
           ownerFarmId: post.farmId,
+          ownerFarmIdStr,
           userPlayerId: user.playerId,
           sflStatus: sflResult.status,
-          cheersGiven: cheersGiven,
-          farmsList: farmsList
+          cheersGiven,
+          farmsList,
+          farmsListStr: farmsList.map(f => String(f)),
+          comparisonResults: farmsList.map(farmId => ({ farmId, ownerFarmIdStr, equal: String(farmId) === ownerFarmIdStr }))
         }
       })
     }
 
-    // Success - add chat message
+    // Success
+    console.log('[VerifyCheer] SUCCESS: Cheer verified!')
     const chatMessage = {
       postId: id,
       userId: userId,
@@ -209,25 +243,20 @@ export async function POST(
       createdAt: new Date().toISOString(),
     }
 
-    const { error: msgError } = await supabase
-      .from('ChatMessage')
-      .insert(chatMessage)
-
-    if (msgError) {
-      console.error('[VerifyCheer] Failed to insert chat message:', msgError)
-    }
+    await supabase.from('ChatMessage').insert(chatMessage)
 
     return NextResponse.json({
       verified: true,
       message: 'Cheer verified successfully! 🎉',
-      debug: debugLog,
     })
   } catch (err: any) {
-    console.error('[VerifyCheer] Error:', err.message)
+    console.error('[VerifyCheer] ERROR:', err.message, err.stack)
     return NextResponse.json({
       verified: false,
       reason: 'server_error',
       message: 'Something went wrong. Try again.',
     })
+  } finally {
+    console.log('[VerifyCheer] ===== END REQUEST =====')
   }
 }
