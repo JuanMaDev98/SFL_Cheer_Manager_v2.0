@@ -11,7 +11,8 @@ export interface TelegramUser {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 
 export const MANDATORY_CHATS = [
-  { username: 'JuanMaCryptoYoutube', type: 'channel' as const, name: 'JuanMa Crypto Chat' },
+  { username: 'JuanMaYoutube', type: 'channel' as const, name: 'Canal de JuanMa' },
+  { username: 'JuanMaCryptoYoutube', type: 'group' as const, name: 'JuanMa Crypto Chat' },
 ]
 
 /**
