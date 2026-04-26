@@ -43,7 +43,8 @@ export interface DbHelperJoin {
   id: string
   postId: string
   userId: string
-  status: string
+  status: 'joined' | 'cheered' | 'returned' | 'completed'
+  helperFarmId: string | null  // Farm ID of the helper (for return cheer)
   createdAt: string
 }
 

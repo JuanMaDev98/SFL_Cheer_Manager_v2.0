@@ -43,7 +43,7 @@ export async function POST(
     // Create join record
     const { data: join, error: joinError } = await supabase
       .from('HelperJoin')
-      .insert({ postId: id, userId, status: 'joined' })
+      .insert({ postId: id, userId, status: 'joined', helperFarmId: null })
       .select('user:User(id, nickname, avatarIndex)')
       .single()
 
@@ -76,6 +76,7 @@ export async function POST(
           id,
           userId,
           status,
+          helperFarmId,
           createdAt,
           user:User(id, nickname, avatarIndex)
         )

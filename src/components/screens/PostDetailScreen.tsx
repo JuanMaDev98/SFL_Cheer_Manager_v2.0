@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Send, UserPlus, UserMinus, Trash2, Edit3,
-  MessageCircle, RefreshCw
+  MessageCircle, RefreshCw, ExternalLink
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +52,8 @@ export default function PostDetailScreen() {
   const [isJoining, setIsJoining] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [isVerifyingReturn, setIsVerifyingReturn] = useState(false)
+  const [verifyingReturnFor, setVerifyingReturnFor] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -192,10 +194,42 @@ export default function PostDetailScreen() {
     }
   }
 
-  // Handle cheer link (open farm link)
-  const handleCheerLink = () => {
-    if (!post) return
-    const farmLink = `https://sunflower-land.com/play/#/visit/${post.farmId}`
+  // Handle verify return (owner verifies they cheered back)
+  const handleVerifyReturn = async (helperUserId: string) => {
+    if (!post || !user) return
+    haptic([50])
+    setIsVerifyingReturn(true)
+    setVerifyingReturnFor(helperUserId)
+    try {
+      const res = await fetch(`/api/posts/${post.id}/verify-return`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, helperUserId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        haptic([50, 100, 50])
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 3500)
+        fetchPost()
+        fetchMessages()
+      } else {
+        haptic([100])
+        alert(data.message || (lang === 'es'
+          ? 'No se pudo verificar. Asegúrate de haber dado cheer a la granja del usuario.'
+          : 'Could not verify. Make sure you cheered the helper\'s farm.'))
+      }
+    } catch {
+      haptic([100])
+    } finally {
+      setIsVerifyingReturn(false)
+      setVerifyingReturnFor(null)
+    }
+  }
+
+  // Handle go to farm (open farm link)
+  const handleGoToFarm = (farmId: string) => {
+    const farmLink = `https://sunflower-land.com/play/#/visit/${farmId}`
     window.open(farmLink, '_blank')
   }
 
@@ -461,7 +495,7 @@ export default function PostDetailScreen() {
 
                     {/* Cheer Granja */}
                     <Button
-                      onClick={handleCheerLink}
+                      onClick={() => handleGoToFarm(post.farmId)}
                       variant="outline"
                       disabled={!hasJoined}
                       className="w-full h-11 rounded-xl border-yellow-300 text-yellow-700 hover:bg-yellow-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
@@ -545,6 +579,98 @@ export default function PostDetailScreen() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Owner: My Cheerers section */}
+          {isOwner && post.helpers && post.helpers.length > 0 && (
+            <Card className="rounded-2xl border-green-200 bg-white/90 shadow-sm mb-4 overflow-hidden">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
+                  🎉 {lang === 'es' ? 'Cheerers Pendientes' : 'Pending Cheerers'}
+                </h3>
+                <p className="text-xs text-green-600 mb-4">
+                  {lang === 'es'
+                    ? 'Los siguientes usuarios te enviaron un cheer. ¡Retórnalos para completar el intercambio!'
+                    : 'The following users sent you a cheer. Return theirs to complete the exchange!'} }
+                </p>
+                <div className="space-y-3">
+                  {post.helpers
+                    .filter((h: any) => h.status === 'cheered')
+                    .map((helper: any) => (
+                      <div key={helper.id} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <BumpkinAvatar
+                          avatarIndex={helper.user.avatarIndex}
+                          nickname={helper.user.nickname}
+                          size="md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-green-900 truncate">
+                            {helper.user.nickname}
+                          </p>
+                          <p className="text-[10px] text-green-500 font-mono">
+                            #{helper.helperFarmId || helper.user.playerId}
+                          </p>
+                          <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                            {lang === 'es' ? 'Esperando return' : 'Waiting for return'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Button
+                            size="sm"
+                            onClick={() => handleGoToFarm(helper.helperFarmId || helper.user.playerId)}
+                            className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold gap-1 h-8"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            {lang === 'es' ? 'Ir a Farm' : 'Go to Farm'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleVerifyReturn(helper.userId)}
+                            disabled={isVerifyingReturn && verifyingReturnFor === helper.userId}
+                            className="rounded-xl border-green-300 text-green-700 hover:bg-green-50 text-xs font-bold h-8"
+                          >
+                            {isVerifyingReturn && verifyingReturnFor === helper.userId
+                              ? '...'
+                              : (lang === 'es' ? 'Verificar Return' : 'Verify Return')}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  {post.helpers.filter((h: any) => h.status === 'cheered').length === 0 && (
+                    <p className="text-center text-xs text-green-400 py-3">
+                      {lang === 'es' ? 'Nadie te ha enviado cheer todavía.' : 'No one has cheered you yet.'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Completed exchanges */}
+                {post.helpers.some((h: any) => h.status === 'completed') && (
+                  <>
+                    <h4 className="text-xs font-bold text-green-700 mt-4 mb-2">
+                      ✅ {lang === 'es' ? 'Intercambios completados' : 'Completed exchanges'}
+                    </h4>
+                    <div className="space-y-2">
+                      {post.helpers
+                        .filter((h: any) => h.status === 'completed')
+                        .map((helper: any) => (
+                          <div key={helper.id} className="flex items-center gap-3 p-2 bg-green-50 rounded-xl border border-green-200 opacity-70">
+                            <BumpkinAvatar
+                              avatarIndex={helper.user.avatarIndex}
+                              nickname={helper.user.nickname}
+                              size="sm"
+                            />
+                            <p className="text-xs font-bold text-green-800 flex-1 truncate">
+                              {helper.user.nickname}
+                            </p>
+                            <span className="text-green-500 text-xs">✅</span>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Chat section */}
           <Card className="rounded-2xl border-green-200 bg-white/90 shadow-sm overflow-hidden">
