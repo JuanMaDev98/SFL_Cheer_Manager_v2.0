@@ -14,6 +14,8 @@ import AdBanner from '@/components/shared/AdBanner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
+const APP_VERSION = '1.0.4'
+
 export default function ProfileScreen() {
   const { user, lang, setScreen, setTelegramLinked, isTelegramLinked } = useAppStore()
   const [joinedPosts, setJoinedPosts] = useState<number>(0)
@@ -226,6 +228,9 @@ export default function ProfileScreen() {
               {t('profile.logout', lang as Lang)}
             </Button>
           </motion.div>
+
+          {/* Version */}
+          <p className="text-center text-[10px] text-green-400/50 pb-4">v{APP_VERSION}</p>
         </motion.div>
       </div>
     </div>
