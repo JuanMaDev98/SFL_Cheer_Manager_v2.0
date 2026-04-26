@@ -125,12 +125,32 @@ export async function POST(
     debugLog.foundInFarms = foundInFarms
     debugLog.farmsListTypes = farmsList.map(f => typeof f)
     debugLog.ownerFarmIdType = typeof ownerFarmIdStr
-    console.log('[VerifyCheer] Debug:', JSON.stringify(debugLog, null, 2))
+    // Debug: log everything
+    console.log('[VerifyCheer] FULL REQUEST:', JSON.stringify({
+      postId: id,
+      userId: userId,
+      post: { id: post.id, farmId: post.farmId, ownerId: post.ownerId },
+      user: { id: user.id, playerId: user.playerId, nickname: user.nickname },
+      sflResponseStatus: sflRes.status,
+      sflResponseOk: sflRes.ok,
+      cheersGiven: cheersGiven,
+      farmsList: farmsList,
+      ownerFarmId: ownerFarmIdStr,
+      foundInFarms: foundInFarms
+    }, null, 2));
+
     if (!foundInFarms) {
       return NextResponse.json({
         verified: false,
         reason: 'cheer_wrong_farm',
         message: `Cheer not found for this farm. You cheered ${farmsList.length} farms today but not this one.`,
+        debug: {
+          ownerFarmId: post.farmId,
+          userPlayerId: user.playerId,
+          sflStatus: sflRes.status,
+          cheersGiven: cheersGiven,
+          farmsList: farmsList
+        }
       })
     }
 
