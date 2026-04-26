@@ -14,7 +14,7 @@ import AdBanner from '@/components/shared/AdBanner'
 import LanguageToggle from '@/components/shared/LanguageToggle'
 import type { Lang } from '@/lib/i18n'
 
-const APP_VERSION = '1.0.8'
+const APP_VERSION = '1.0.9'
 
 export default function ProfileScreen() {
   const { user, lang, setScreen, setTelegramLinked, isTelegramLinked } = useAppStore()
