@@ -5,6 +5,50 @@ import { decrypt, isValidSflApiKey } from '@/lib/encryption'
 const SFL_API_BASE = 'https://api.sunflower-land.com/community/farms'
 
 /**
+ * Retry wrapper with exponential backoff for API calls
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 3,
+  baseDelay = 1000
+): Promise<{ ok: boolean; status: number; data?: any }> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(10000), // 10s timeout
+      })
+
+      // If rate limited (429), retry with backoff
+      if (res.status === 429) {
+        const delay = baseDelay * Math.pow(2, attempt - 1)
+        console.log(`[VerifyCheer] Rate limited (429), retrying in ${delay}ms (attempt ${attempt}/${retries})`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+
+      let data
+      try {
+        data = await res.json()
+      } catch {
+        data = null
+      }
+
+      return { ok: res.ok, status: res.status, data }
+    } catch (err: any) {
+      console.error(`[VerifyCheer] Fetch attempt ${attempt} failed:`, err.message)
+      if (attempt === retries) {
+        return { ok: false, status: 0, data: null }
+      }
+      const delay = baseDelay * Math.pow(2, attempt - 1)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  return { ok: false, status: 0, data: null }
+}
+
+/**
  * POST /api/posts/[id]/verify-cheer
  * Verifies if the current user has given a cheer to the post owner's farm
  * Uses the user's API key to call SFL API and check cheersGiven data
@@ -84,26 +128,43 @@ export async function POST(
       })
     }
 
-    // Call SFL API to get user's cheersGiven data
-    const sflRes = await fetch(`${SFL_API_BASE}/${user.playerId}`, {
-      headers: {
-        'X-API-Key': apiKey,
-        Accept: 'application/json',
+    // Call SFL API with retry logic
+    const sflResult = await fetchWithRetry(
+      `${SFL_API_BASE}/${user.playerId}`,
+      {
+        headers: {
+          'X-API-Key': apiKey,
+          Accept: 'application/json',
+        },
       },
-    })
+      3, // 3 retries
+      1500 // 1.5s base delay
+    )
 
-    debugLog.sflStatus = sflRes.status
+    debugLog.sflStatus = sflResult.status
+    debugLog.sflOk = sflResult.ok
 
-    if (!sflRes.ok) {
+    if (!sflResult.ok) {
+      // Provide specific error messages based on status
+      let message = 'Could not verify with Sunflower Land API. Try again in a few minutes.'
+      let reason = 'sfl_api_error'
+
+      if (sflResult.status === 429) {
+        message = 'Sunflower Land API is rate limited. Please wait a few seconds and try again.'
+        reason = 'rate_limited'
+      } else if (sflResult.status === 0) {
+        message = 'Connection timeout. Please check your internet and try again.'
+        reason = 'timeout'
+      }
+
       return NextResponse.json({
         verified: false,
-        reason: 'sfl_api_error',
-        message: 'Could not verify with Sunflower Land API. Try again in a few minutes.',
+        reason,
+        message,
       })
     }
 
-    const data = await sflRes.json()
-    debugLog.sflOk = true
+    const data = sflResult.data
 
     // Get cheersGiven data — path: farm.socialFarming.cheersGiven
     const cheersGiven = data.farm?.socialFarming?.cheersGiven
@@ -123,31 +184,16 @@ export async function POST(
     debugLog.farmsList = farmsList
     debugLog.ownerFarmId = ownerFarmIdStr
     debugLog.foundInFarms = foundInFarms
-    debugLog.farmsListTypes = farmsList.map(f => typeof f)
-    debugLog.ownerFarmIdType = typeof ownerFarmIdStr
-    // Debug: log everything
-    console.log('[VerifyCheer] FULL REQUEST:', JSON.stringify({
-      postId: id,
-      userId: userId,
-      post: { id: post.id, farmId: post.farmId, ownerId: post.ownerId },
-      user: { id: user.id, playerId: user.playerId, nickname: user.nickname },
-      sflResponseStatus: sflRes.status,
-      sflResponseOk: sflRes.ok,
-      cheersGiven: cheersGiven,
-      farmsList: farmsList,
-      ownerFarmId: ownerFarmIdStr,
-      foundInFarms: foundInFarms
-    }, null, 2));
 
     if (!foundInFarms) {
       return NextResponse.json({
         verified: false,
         reason: 'cheer_wrong_farm',
-        message: `Cheer not found for this farm. You cheered ${farmsList.length} farms today but not this one.`,
+        message: `Cheer not found for this farm. You cheered ${farmsList.length} farms today but not this one. Make sure you cheered the correct farm and wait ~1 minute before trying again.`,
         debug: {
           ownerFarmId: post.farmId,
           userPlayerId: user.playerId,
-          sflStatus: sflRes.status,
+          sflStatus: sflResult.status,
           cheersGiven: cheersGiven,
           farmsList: farmsList
         }
