@@ -590,7 +590,7 @@ export default function PostDetailScreen() {
                 <p className="text-xs text-green-600 mb-4">
                   {lang === 'es'
                     ? 'Los siguientes usuarios te enviaron un cheer. ¡Retórnalos para completar el intercambio!'
-                    : 'The following users sent you a cheer. Return theirs to complete the exchange!'} }
+                    : 'The following users sent you a cheer. Return theirs to complete the exchange!'}
                 </p>
                 <div className="space-y-3">
                   {post.helpers
